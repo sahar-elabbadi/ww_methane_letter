@@ -1,0 +1,3 @@
+{
+  "python.defaultInterpreterPath": "${methane_letter}/venv/bin/python"
+}
