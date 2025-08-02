@@ -13,6 +13,8 @@ data_path = pathlib.Path("01_raw_data", "supplementary_database_C.xlsx")
 wwtp_data = pd.read_excel(data_path)
 
 chp_data = load_chp_facilities()
+chp_data.sort_values(by='flow_mgd', inplace=True, ascending=False)
+chp_data.to_csv(pathlib.PurePath("02_clean_data", "chp_facilities.csv"), index=False)
 
 # %%
 

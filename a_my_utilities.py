@@ -108,7 +108,8 @@ def load_ch4_emissions_data(
     dtype_map={
         "source": str,
         "flow_m3_per_day": float,
-        "ch4_kg_per_hr": float
+        "ch4_kg_per_hr": float,
+        'has_ad': str,
     }
 ):
     import pandas as pd
@@ -127,6 +128,18 @@ def load_ch4_emissions_data(
     df = df.reset_index(drop=True)
 
     return df
+
+def load_ch4_emissions_with_ad_only():
+    # Load full emissions data
+    df = load_ch4_emissions_data()
+
+    # Normalize 'has_ad' to lowercase in case there are variations like 'Yes', 'YES', etc.
+    df['has_ad'] = df['has_ad'].str.strip().str.lower()
+
+    # Filter to only rows with AD
+    df_ad = df[df['has_ad'] == 'yes'].copy()
+
+    return df_ad
 
 
 
