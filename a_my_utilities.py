@@ -96,11 +96,25 @@ def load_chp_facilities():
     # Filter for energy recovery facilities and copy the slice
     energy_recovery = wwtp_data[
         wwtp_data['treatment_train'].apply(
-            lambda treatments: any(str(t).endswith('e') for t in treatments)
+            lambda treatments: any('e' in str(t) for t in treatments)
         )
     ].copy()
 
     return energy_recovery
+
+def load_ad_facilities():
+    # Load the CSV using your custom loader
+    wwtp_data = load_and_clean_facility_data(pathlib.PurePath('01_raw_data',
+                                                               'supplementary_database_C.xlsx'))
+
+    # Filter for energy recovery facilities and copy the slice
+    anaerobic_digestion = wwtp_data[
+        wwtp_data['treatment_train'].apply(
+            lambda treatments: any('1' in str(t) for t in treatments)
+        )
+    ].copy()
+
+    return anaerobic_digestion
 
 
 def load_ch4_emissions_data(
