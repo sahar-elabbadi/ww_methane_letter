@@ -236,4 +236,68 @@ def calc_biogas_production_rate(flow_m3_per_day):
 
 
 
+#### For economic analysis #### 
 
+
+def calc_leak_value(plant_size, biogas_production_rate, leak_rate, leak_fraction_capturable, electricity_price_per_kWh):
+    """
+    plant_size: size of the plant in m3/day
+    biogas_production_rate: biogas production rate as MJ biogas per m3 treated flow 
+    leak_rate: leak rate as a fraction of the biogas production rate
+    leak_fraction_capturable: fraction of the leak that can be captured
+
+    """
+
+    biogas_production_MJ_per_day = plant_size * biogas_production_rate
+    # print(f'Biogas production rate: {biogas_production_MJ_per_day} MJ/day')
+
+    methane_leakage_MJ_per_hr = biogas_production_MJ_per_day * leak_rate * (1/24) # Convert to per hour
+    # print(f'Methane leakage: {methane_leakage_MJ_per_hr} MJ/hr')
+   
+    methane_leakage_kg_per_hr = methane_leakage_MJ_per_hr * (1/mj_per_kg_CH4()) # Convert to kg CH4 per hour
+    # print(f'Methane leakage: {methane_leakage_kg_per_hr} kg CH4/hr')
+   
+    electricity_generation_potential_kWh_per_hour = methane_leakage_MJ_per_hr *\
+          leak_fraction_capturable * (1/mj_per_kWh()) # Convert to kWh per hour
+    
+    leak_value_usd_per_hour = electricity_generation_potential_kWh_per_hour * electricity_price_per_kWh # Convert to USD per hour
+    
+    return leak_value_usd_per_hour
+
+
+def calc_payback_period(plant_size, biogas_production_rate, leak_rate, leak_fraction_capturable, electricity_price_per_kWh, ogi_cost=100000): 
+    """
+    Calculate the payback period (days) for a methane leak OGI survey based on the leak value.
+    
+    plant_size: size of the plant in m3/day
+    biogas_production_rate: biogas production rate as MJ biogas per m3 treated flow 
+    leak_rate: leak rate as a fraction of the biogas production rate
+    leak_fraction_capturable: fraction of the leak that can be captured
+    electricity_price_per_kWh: price of electricity in USD per kWh
+    """
+
+    leak_value = calc_leak_value(plant_size, biogas_production_rate, leak_rate, leak_fraction_capturable, electricity_price_per_kWh)
+    
+    payback_period = ogi_cost / leak_value * (1/24) # Payback period in days
+    
+    return payback_period
+
+
+def calc_annual_savings(plant_size, biogas_production_rate, leak_rate, leak_fraction_capturable, electricity_price_per_kWh, ogi_cost=100000):
+    """
+    Calculate the annual savings from capturing methane leaks.
+    
+    plant_size: size of the plant in m3/day
+    biogas_production_rate: biogas production rate as MJ biogas per m3 treated flow 
+    leak_rate: leak rate as a fraction of the biogas production rate
+    leak_fraction_capturable: fraction of the leak that can be captured
+    electricity_price_per_kWh: price of electricity in USD per kWh
+    ogi_cost: cost of OGI survey in USD
+    """
+    
+    leak_value = calc_leak_value(plant_size, biogas_production_rate, leak_rate, leak_fraction_capturable, electricity_price_per_kWh)
+    
+
+    annual_savings = leak_value * 24 * 365 - ogi_cost  # Annual savings in USD
+    
+    return annual_savings
