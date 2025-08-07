@@ -2,11 +2,16 @@
 import pandas as pd 
 import matplotlib.pyplot as plt
 import pathlib
+<<<<<<< HEAD
 import geopandas as gpd
 import seaborn as sns
 from matplotlib.patches import Rectangle
 from shapely.geometry import Polygon
 from a_my_utilities import load_chp_facilities, load_ad_facilities
+=======
+
+from a_my_utilities import load_chp_facilities, load_ad_facilities, mgd_to_m3_per_day
+>>>>>>> main
 
 #load wastewater treatment plant (WWTP) data 
 data_path = pathlib.Path("01_raw_data", "supplementary_database_C.xlsx")
@@ -16,9 +21,16 @@ wwtp_data = pd.read_excel(data_path)
 chp_data = load_chp_facilities()
 ad_data = load_ad_facilities()
 
+<<<<<<< HEAD
 #convert flow data from MGD to Mm3/day
 chp_data['flow [Mm3/day]'] = chp_data['flow_mgd'] * 0.00378541
 ad_data['flow [Mm3/day]'] = ad_data['flow_mgd'] * 0.00378541
+=======
+# Data concversion from MGD to m3/day
+chp_data['flow_m3_per_day'] = chp_data['flow_mgd'].apply(mgd_to_m3_per_day)
+ad_data['flow_m3_per_day'] = ad_data['flow_mgd'].apply(mgd_to_m3_per_day)
+
+>>>>>>> main
 
 #initialize figure and axis
 fig, ax = plt.subplots(figsize=(30, 30))
