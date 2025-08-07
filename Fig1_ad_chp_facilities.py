@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import pathlib
 
-from a_my_utilities import load_chp_facilities, load_ad_facilities
+from a_my_utilities import load_chp_facilities, load_ad_facilities, mgd_to_m3_per_day
 
 # Load data 
 
@@ -14,6 +14,10 @@ wwtp_data = pd.read_excel(data_path)
 
 chp_data = load_chp_facilities()
 ad_data = load_ad_facilities()
+
+# Data concversion from MGD to m3/day
+chp_data['flow_m3_per_day'] = chp_data['flow_mgd'].apply(mgd_to_m3_per_day)
+ad_data['flow_m3_per_day'] = ad_data['flow_mgd'].apply(mgd_to_m3_per_day)
 
 
 ## NEXT

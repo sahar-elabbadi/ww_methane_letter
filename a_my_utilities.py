@@ -162,6 +162,10 @@ def load_ch4_emissions_with_ad_only():
 # 1 US gallon = 0.003785411784 m³
 # 1 MGD = 1e6 gallons/day → million m³/day = (1e6 * 0.003785411784) / 1e6 = 0.003785411784
 m3_per_gal = 0.003785411784
+mj_per_kg_ch4 = 50.4 # energy content of methane
+
+def m3_per_mg(): 
+    return m3_per_gal * 1e6 # Convert MG to m3 
 
 
 def mgd_to_m3_per_day(mgd: float) -> float:
@@ -187,13 +191,20 @@ def g_per_s_to_kg_per_hour(g_per_s):
     
     return g_per_s *3.6
 
-def mj_to_kg_CH4(mj_ch4): 
+def convert_mj_to_kg_CH4(mj_ch4): 
     """
     Convert MJ of energy in methane to kg CH4
     """
-    mj_per_kg_ch4 = 50.4 # energy content of methane
     return mj_ch4 * (1/mj_per_kg_ch4)
 
+
+def mj_per_kg_CH4(): 
+    return mj_per_kg_ch4
+
+
+
+def mj_per_kWh(): 
+    return 3.6 # 3.6 MJ per kWh
 
 
 ####### Analysis Functions ########################################
