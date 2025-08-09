@@ -55,8 +55,12 @@ def clean_moore2023_data():
     # Add 'source' column to Moore data
     merged['source'] = "Moore et al., 2023"
 
+    # Add column for 'reported_biogas_production' 
+    merged['reported_biogas_production'] = "no"
+
+
     # Reorder columns
-    reorder_merged = merged[['source', flow_column, measurement_column, ad_column]]
+    reorder_merged = merged[['source', flow_column, measurement_column, ad_column, 'reported_biogas_production']]
     
     return reorder_merged
 
@@ -94,7 +98,10 @@ def clean_song_data():
     # Unit conversion: kg/day → kg/hour
     df[measurement_column] = df['ch4_kg_per_day'] / 24
 
-    save_cols = ['source', 'flow_m3_per_day', 'ch4_kg_per_hr', 'has_ad']
+    # Add column for 'reported_biogas_production' 
+    df['reported_biogas_production'] = "no"
+
+    save_cols = ['source', 'flow_m3_per_day', 'ch4_kg_per_hr', 'has_ad', 'reported_biogas_production']
 
     return df[save_cols]
 
@@ -165,13 +172,13 @@ def clean_fredenslund_data(df: pd.DataFrame) -> pd.DataFrame:
         "source": "Fredenslund et al., 2023",
         "flow_m3_per_day": pd.NA,  # No flow data provided
         "ch4_kg_per_hr": filtered["total_methane_emission_kgch4_per_hour"],
-        "has_ad": 'yes'
+        "has_ad": 'yes', 
+        "reported_biogas_production": 'yes',
     })
 
     return result
 
 
-# Example usage (not saving to file per request)
 excel_path = pathlib.Path("01_raw_data", "Fredenslund2023_SI-data.xlsx")
 raw_df = load_fredenslund_data(excel_path)
 fredenslund_data = clean_fredenslund_data(raw_df)

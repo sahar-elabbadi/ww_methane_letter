@@ -124,6 +124,8 @@ def load_ch4_emissions_data(
         "flow_m3_per_day": float,
         "ch4_kg_per_hr": float,
         'has_ad': str,
+        'reported_biogas_production': str,
+        'biogas_production_kgCH4_per_hr': float,
     }
 ):
     import pandas as pd
@@ -229,7 +231,7 @@ def calc_biogas_production_rate(flow_m3_per_day):
     biogas_production_mid = biogas_production_mid * (1/m3_per_gal) * 1e-6 # Units: MJ / m3 treated
 
     # Convert to kg CH4 / m3 
-    kgCH4_production_mid = mj_to_kg_CH4(biogas_production_mid) # Units: kg CH4 produced as biogas / m3 treated
+    kgCH4_production_mid = biogas_production_mid * (1/mj_per_kg_CH4()) # Units: kg CH4 produced as biogas / m3 treated
    
     return kgCH4_production_mid * flow_m3_per_day /24 # final units: kg CH4 produced as biogas / hour 
 
