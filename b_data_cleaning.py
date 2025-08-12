@@ -58,9 +58,13 @@ def clean_moore2023_data():
     # Add column for 'reported_biogas_production' 
     merged['reported_biogas_production'] = "no"
 
+    # Add column for 'biogas_production_kgCH4_per_hr
+    merged['biogas_production_kgCH4_per_hr'] = pd.NA
+
 
     # Reorder columns
-    reorder_merged = merged[['source', flow_column, measurement_column, ad_column, 'reported_biogas_production']]
+    reorder_merged = merged[['source', flow_column, measurement_column, ad_column, 
+                             'reported_biogas_production', 'biogas_production_kgCH4_per_hr']]
     
     return reorder_merged
 
@@ -98,10 +102,13 @@ def clean_song_data():
     # Unit conversion: kg/day → kg/hour
     df[measurement_column] = df['ch4_kg_per_day'] / 24
 
-    # Add column for 'reported_biogas_production' 
+    # Add column for whether or not they reported biogas production 
     df['reported_biogas_production'] = "no"
 
-    save_cols = ['source', 'flow_m3_per_day', 'ch4_kg_per_hr', 'has_ad', 'reported_biogas_production']
+    # Add column for reported biogas production rate (NA in this case) 
+    df['biogas_production_kgCH4_per_hr'] = pd.NA
+
+    save_cols = ['source', 'flow_m3_per_day', 'ch4_kg_per_hr', 'has_ad', 'reported_biogas_production', 'biogas_production_kgCH4_per_hr']
 
     return df[save_cols]
 
@@ -167,13 +174,18 @@ def clean_fredenslund_data(df: pd.DataFrame) -> pd.DataFrame:
     """Filter for wastewater plants and return a simplified dataframe with specified columns."""
     filtered = df[df["plant_type"] == "Wastewater"].copy()
 
+    filtered['gas_production_numeric'] = pd.to_numeric(filtered['gas_production_on_date_of_measurement_kgch4_per_hour'], errors='coerce')
+
+    filtered['reported_biogas_production'] = filtered['gas_production_numeric'].notna().map({True: 'yes', False: 'no'})
+
     # Build the new dataframe
     result = pd.DataFrame({
         "source": "Fredenslund et al., 2023",
         "flow_m3_per_day": pd.NA,  # No flow data provided
         "ch4_kg_per_hr": filtered["total_methane_emission_kgch4_per_hour"],
         "has_ad": 'yes', 
-        "reported_biogas_production": 'yes',
+        "reported_biogas_production": filtered['reported_biogas_production'], 
+        "biogas_production_kgCH4_per_hr": filtered["gas_production_numeric"]
     })
 
     return result
@@ -184,6 +196,9 @@ raw_df = load_fredenslund_data(excel_path)
 fredenslund_data = clean_fredenslund_data(raw_df)
 # %%
 #%%
+
+
+
 
 ####################### Combine datasets ######################
 

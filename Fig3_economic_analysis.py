@@ -69,7 +69,7 @@ def plot_methane_savings_contour(
 
     # Jianan-style color map
     b, g, y, o, r = "#60C1CF", "#79BF82", "#F3C354", "#F98F60", "#ED586F"
-    color_map = mcolors.LinearSegmentedColormap.from_list('custom_map', [b, g, y, o, r])
+    color_map = mcolors.LinearSegmentedColormap.from_list('custom_map', [r, o, y, g, b])
 
     # Create fig/ax if needed
     if fig is None or ax is None:
@@ -95,7 +95,7 @@ def plot_methane_savings_contour(
     # Breakeven line
     breakeven = ax.tricontour(
         X_flat, Y_flat, Z_flat,
-        levels=[0], colors='red', linewidths=3.0, linestyles='solid', zorder=3
+        levels=[0], colors='black', linewidths=3.0, linestyles='solid', zorder=3
     )
     # ax.clabel(breakeven, fmt={0: '$0'}, fontsize=12, colors='red')
 
