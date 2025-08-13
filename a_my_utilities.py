@@ -211,7 +211,7 @@ def mj_per_kWh():
 
 ####### Analysis Functions ########################################
 
-
+##### Calculate biogas production rate based on flow rate #####
 def calc_biogas_production_rate(flow_m3_per_day): 
     """
     Calculate biogas production based on an input flow rate, using Tarallo et al process models
@@ -236,6 +236,75 @@ def calc_biogas_production_rate(flow_m3_per_day):
     return kgCH4_production_mid * flow_m3_per_day /24 # final units: kg CH4 produced as biogas / hour 
 
 
+##### Calculate production-normalized CH4 emissions #####
+def calculate_production_normalized_ch4(
+    data: pd.DataFrame = None,
+    load_data_func=None,
+    calc_biogas_func=None
+):
+    """
+    Calculate production-normalized CH4 emissions (% of biogas production).
+
+    Parameters
+    ----------
+    data : pd.DataFrame, optional
+        Input dataframe containing AD facility data. If None, will call `load_data_func()`.
+    load_data_func : callable, optional
+        Function to load the dataset if `data` is None.
+    calc_biogas_func : callable
+        Function to calculate biogas production rate from flow (required).
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with additional columns:
+        - biogas_measured_num
+        - calculated_biogas_production_kgCH4_per_hr
+        - biogas_production_used_kgCH4_per_hr
+        - production_normalized_CH4_percent
+    """
+    if data is None:
+        if load_data_func is None:
+            raise ValueError("Either `data` must be provided or `load_data_func` must be specified.")
+        data = load_data_func()
+
+    if calc_biogas_func is None:
+        raise ValueError("`calc_biogas_func` must be provided.")
+
+    df = data.copy()
+
+    # 1) Ensure numeric measured biogas production
+    df['biogas_measured_num'] = pd.to_numeric(
+        df['biogas_production_kgCH4_per_hr'], errors='coerce'
+    )
+
+    # 2) Flag valid measured values
+    use_measured = (
+        df['reported_biogas_production'].astype(str).str.lower().eq('yes')
+        & df['biogas_measured_num'].notna()
+        & df['biogas_measured_num'].gt(0)
+    )
+
+    # 3) Check for flow data
+    has_flow = df['flow_m3_per_day'].notna()
+
+    # 4) Calculate from flow where available
+    df['calculated_biogas_production_kgCH4_per_hr'] = np.nan
+    df.loc[has_flow, 'calculated_biogas_production_kgCH4_per_hr'] = (
+        df.loc[has_flow, 'flow_m3_per_day'].apply(calc_biogas_func)
+    )
+
+    # 5) Choose measured if valid, else calculated
+    df['biogas_production_used_kgCH4_per_hr'] = (
+        df['biogas_measured_num'].where(use_measured)
+        .combine_first(df['calculated_biogas_production_kgCH4_per_hr'])
+    )
+
+    # 6) Calculate production-normalized CH4 (%)
+    denom = df['biogas_production_used_kgCH4_per_hr'].where(lambda x: x > 0)
+    df['production_normalized_CH4_percent'] = df['ch4_kg_per_hr'] / denom
+
+    return df
 
 
 #### For economic analysis #### 
