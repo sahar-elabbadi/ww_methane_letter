@@ -61,9 +61,11 @@ def clean_moore2023_data():
     # Add column for 'biogas_production_kgCH4_per_hr
     merged['biogas_production_kgCH4_per_hr'] = pd.NA
 
+    # Add a column for PE in size that is NA 
+    merged['size_PE'] = pd.NA
 
     # Reorder columns
-    reorder_merged = merged[['source', flow_column, measurement_column, ad_column, 
+    reorder_merged = merged[['source', flow_column, 'size_PE', measurement_column, ad_column, 
                              'reported_biogas_production', 'biogas_production_kgCH4_per_hr']]
     
     return reorder_merged
@@ -108,7 +110,11 @@ def clean_song_data():
     # Add column for reported biogas production rate (NA in this case) 
     df['biogas_production_kgCH4_per_hr'] = pd.NA
 
-    save_cols = ['source', 'flow_m3_per_day', 'ch4_kg_per_hr', 'has_ad', 'reported_biogas_production', 'biogas_production_kgCH4_per_hr']
+    # Add a column for PE in size that is NA 
+    df['size_PE'] = pd.NA
+
+    save_cols = ['source', 'flow_m3_per_day', 'size_PE', 'ch4_kg_per_hr', 
+                 'has_ad', 'reported_biogas_production', 'biogas_production_kgCH4_per_hr']
 
     return df[save_cols]
 
@@ -125,6 +131,8 @@ import re
 import pandas as pd
 from pathlib import Path
 
+
+###### Load raw SI data and clean column titles ######
 def load_fredenslund_data(excel_path: Path, last_row_excel: int = 72, sheet: str = "Data") -> pd.DataFrame:
     """Load Fredenslund2023 data up to a specified last row, with units in column names standardized."""
     header_row_idx = 1
@@ -170,6 +178,60 @@ def load_fredenslund_data(excel_path: Path, last_row_excel: int = 72, sheet: str
     return df
 
 
+###### Append PE data from Wechselberger et al ######
+
+def fredenslund_append_wastewater_pe(fredenslund_df):
+    """
+    Append wastewater_PE values from the Wechselberger2025_SI-data.csv dataset
+    to a given fredenslund dataset, matching rows by plant_id
+    
+    Parameters
+    ----------
+    fredenslund_df : pd.DataFrame
+        The Fredenslund dataset (will not be modified in place).
+        
+    Returns
+    -------
+    pd.DataFrame
+        Copy of fredenslund_df with an added columns  'CH4_emission_rate_in_kg_per_hour_mean', 'wastewater_PE' from Wechselberger2025
+    """
+    
+    # --- Load and clean Wechselberger dataset ---
+    file_path = pathlib.Path("01_raw_data", "Wechselberger2025_SI-data.csv")
+    df = pd.read_csv(file_path)
+    
+    # Wechselberger2025 data uses commas as a decimal separator and dots as thousand separators
+    def clean_numeric(series):
+        return (
+            series.astype(str)
+            .str.replace('.', '', regex=False)   # remove thousand separators
+            .str.replace(',', '.', regex=False)  # fix decimal commas
+            .apply(lambda x: pd.to_numeric(x, errors='coerce'))  # to float
+        )
+    
+    for col in df.columns:
+        if df[col].dtype in ['float64', 'int64']:
+            continue
+        if df[col].astype(str).str.match(r"^[\d\.,]+$").any():
+            df[col] = clean_numeric(df[col])
+    
+    wechselberger_ww = df[df['data_source_citation'] == "Fredenslund et al., 2023"].copy()
+    
+    if 'wastewater_PE' not in wechselberger_ww.columns:
+        raise KeyError("Column 'wastewater_PE' not found in wechselberger_ww")
+    
+    wechselberger_ww['wastewater_PE'] = pd.to_numeric(wechselberger_ww['wastewater_PE'], errors='coerce')
+
+    merged = pd.merge(
+        fredenslund_df, wechselberger_ww[['plant_id', 'wastewater_PE']],
+        left_on='plant_id', 
+        right_on='plant_id',
+        how='left', # Left merge to keep all rows in Fredenslund_df
+    )
+    return merged 
+
+###### Select relevant columns for plots and rename columns ######
+
 def clean_fredenslund_data(df: pd.DataFrame) -> pd.DataFrame:
     """Filter for wastewater plants and return a simplified dataframe with specified columns."""
     filtered = df[df["plant_type"] == "Wastewater"].copy()
@@ -182,6 +244,7 @@ def clean_fredenslund_data(df: pd.DataFrame) -> pd.DataFrame:
     result = pd.DataFrame({
         "source": "Fredenslund et al., 2023",
         "flow_m3_per_day": pd.NA,  # No flow data provided
+        "size_PE": filtered['wastewater_PE'],
         "ch4_kg_per_hr": filtered["total_methane_emission_kgch4_per_hour"],
         "has_ad": 'yes', 
         "reported_biogas_production": filtered['reported_biogas_production'], 
@@ -192,8 +255,17 @@ def clean_fredenslund_data(df: pd.DataFrame) -> pd.DataFrame:
 
 
 excel_path = pathlib.Path("01_raw_data", "Fredenslund2023_SI-data.xlsx")
+raw_fredenslund = load_fredenslund_data(excel_path)
+fredenslund_ww = raw_fredenslund[raw_fredenslund["plant_type"] == "Wastewater"].copy() # Filter for wastewater plants
+
+fredenslund_with_pe = fredenslund_append_wastewater_pe(fredenslund_ww)
+
+print(fredenslund_with_pe[['total_methane_emission_kgch4_per_hour', 'wastewater_PE']].head())
+
+
+excel_path = pathlib.Path("01_raw_data", "Fredenslund2023_SI-data.xlsx")
 raw_df = load_fredenslund_data(excel_path)
-fredenslund_data = clean_fredenslund_data(raw_df)
+fredenslund_data = clean_fredenslund_data(fredenslund_with_pe)
 # %%
 #%%
 
