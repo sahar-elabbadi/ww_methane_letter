@@ -77,7 +77,7 @@ ax.set_aspect(1.27)
 ax.set_axis_off()
 
 #export figure as a jpeg
-plt.savefig(pathlib.Path("03_figures", "figure_1.png"), dpi=300, bbox_inches='tight')
+plt.savefig(pathlib.Path("03_figures", "Figure_1.png"), dpi=300, bbox_inches='tight')
 
 # For Brian: 
 # chp_data.sort_values(by='flow_mgd', inplace=True, ascending=False)
