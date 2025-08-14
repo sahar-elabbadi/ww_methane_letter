@@ -76,7 +76,7 @@ def plot_emissions_vs_flow(
 
     # Save
     save_dir.mkdir(parents=True, exist_ok=True)
-    save_path = save_dir / f"emissions_vs_flow_by_{group_col}.png"
+    save_path = save_dir / f"Figure_2a.png"
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
 
@@ -95,19 +95,19 @@ plot_emissions_vs_flow(
     title="Methane Emissions by Anaerobic Digestion (Log-Log)"
 )
 
-# Make plot with labels based on data source 
-plot_emissions_vs_flow(
-    data=measurement_data,
-    group_col='source',
-    group_label_func=lambda x: (
-        'Moore et al., 2023' if 'Moore' in x else 'Song et al., 2023 (compilation)'
-    ),
-    palette={
-        'Moore et al., 2023': '#E24A33',
-        'Song et al., 2023 (compilation)': '#999999'
-    },
-    title="Methane Emissions by Source (Log-Log)"
-)
+# # Make plot with labels based on data source 
+# plot_emissions_vs_flow(
+#     data=measurement_data,
+#     group_col='source',
+#     group_label_func=lambda x: (
+#         'Moore et al., 2023' if 'Moore' in x else 'Song et al., 2023 (compilation)'
+#     ),
+#     palette={
+#         'Moore et al., 2023': '#E24A33',
+#         'Song et al., 2023 (compilation)': '#999999'
+#     },
+#     title="Methane Emissions by Source (Log-Log)"
+# )
 
 
 # %%

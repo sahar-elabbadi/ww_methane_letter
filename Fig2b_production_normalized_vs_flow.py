@@ -81,8 +81,6 @@ plt.legend(title='Source')
 plt.tight_layout()
 
 # Save with AD-specific filename
-save_path = pathlib.Path("03_figures", "production_normalized_emissions_vs_flow_AD_only.png")
+save_path = pathlib.Path("03_figures", "Figure_2b.png")
 plt.savefig(save_path, dpi=300, bbox_inches='tight')
 plt.show()
-
-# %%
