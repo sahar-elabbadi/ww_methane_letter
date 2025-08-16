@@ -55,16 +55,15 @@ label_fontsize = 18
 tick_fontsize = 16
 
 # --- Top panel: monthly ratio ---
-ax_top.plot(
+ax_top.scatter(
     month_centers,
     monthly["avg_ratio"].to_numpy(),
-    "o-",
     color="tab:purple",
-    markersize=8,
-    linewidth=2,
+    s=60,          # marker size (scatter uses 's' instead of markersize)
     alpha=0.85,
     label="Monthly Avg Methane/Flow"
 )
+
 ax_top.set_ylabel("Flow normalized\nbiogas production\n(kg CH₄/m³)", fontsize=label_fontsize, color="black")
 ax_top.tick_params(axis="y", colors="black", labelsize=tick_fontsize, direction="in")
 ax_top.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{v:,.4f}"))
@@ -79,7 +78,7 @@ ln1 = ax_bot.scatter(
     euguene_data["flow_m3_per_day"],
     color="tab:blue",
     alpha=0.6,
-    s=15,
+    s=20,
     label="Flow (m³/day)"
 )
 ax_bot.set_ylabel("Reported daily flow\n (m³/day)", fontsize=label_fontsize, color="black")
@@ -96,7 +95,7 @@ ln2 = ax2.scatter(
     euguene_data["methane_gen_kg_per_day"],
     color="tab:green",
     alpha=0.6,
-    s=15,
+    s=20,
     label="Methane (kg CH₄/day)"
 )
 ax2.set_ylabel("Reported biogas production\n(kg CH₄/day)", 
