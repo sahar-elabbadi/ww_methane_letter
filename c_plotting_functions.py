@@ -244,3 +244,7 @@ def plot_methane_savings_vary_capturable(
         fig.savefig(save_path, dpi=300, bbox_inches='tight')
 
     return ax
+
+
+
+

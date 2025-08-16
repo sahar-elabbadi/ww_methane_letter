@@ -1,10 +1,19 @@
 import pandas as pd 
 import pathlib
 import numpy as np
+from functools import lru_cache
 
 
 import pandas as pd
 import ast
+
+
+####### GLOBAL CONSTANTS ########################################
+
+BIOGAS_FRACTION_CH4 = 0.65  # Assume 65% CH4 in biogas. Source: Metcalf & Eddy, page 1520
+METHANE_SCF_PER_THERM = 100
+METHANE_MMBTU_PER_THERM = 0.1
+METHANE_KG_PER_SCF = 0.019176  # kg of methane per scf
 
 ####### Data Loading ########################################
 
@@ -209,31 +218,113 @@ def mj_per_kWh():
     return 3.6 # 3.6 MJ per kWh
 
 
+def convert_to_scf(value, unit):
+    if pd.isna(value) or pd.isna(unit):
+        return None
+    unit = unit.lower()
+    
+    if unit == 'scf':
+        return value
+    elif unit == 'mscf':  # thousand scf
+        return value * 1_000
+    elif unit == 'mmscf':  # million scf
+        return value * 1_000_000
+    elif unit in ['therms', 'therm']:
+        # Placeholder: insert actual conversion factor later
+        return value * METHANE_SCF_PER_THERM / BIOGAS_FRACTION_CH4  # placeholder
+    elif unit in ['dtherms']: # dekatherms
+        return value * 10 * METHANE_SCF_PER_THERM / BIOGAS_FRACTION_CH4
+    elif unit == 'scfm':  # standard cubic feet per minute, calculated over 1 year
+        return value * 60 * 24 * 366  # 366 days in 2012
+    elif unit == 'mmbtu':
+        # Placeholder: insert actual conversion factor later
+        return value * (1/METHANE_MMBTU_PER_THERM) * METHANE_SCF_PER_THERM / BIOGAS_FRACTION_CH4  
+    else:
+        return None
+
+
 ####### Analysis Functions ########################################
 
-##### Calculate biogas production rate based on flow rate #####
-def calc_biogas_production_rate(flow_m3_per_day): 
+####### SETUP FOR CHINI REGRESSION #######
+# ----------------------------
+# Internal registration state
+# ----------------------------
+_CHINI_DATA = {
+    "df": None,
+    "x_col": "flow_m3_per_day",
+    "y_col": "methane_gen_kgh",
+    "drop_negative": True,
+}
+
+def set_chini_dataset(df, x_col="flow_m3_per_day", y_col="methane_gen_kgh", drop_negative=True):
     """
-    Calculate biogas production based on an input flow rate, using Tarallo et al process models
+    Register the dataset/columns used by method='chini_data'.
+    Call this once in any process that needs the Chini method.
+    """
+    _CHINI_DATA["df"] = df
+    _CHINI_DATA["x_col"] = x_col
+    _CHINI_DATA["y_col"] = y_col
+    _CHINI_DATA["drop_negative"] = drop_negative
+    _chini_slope_cached.cache_clear()  # reset cache when dataset changes
+
+def _clean_xy(df, x_col, y_col, drop_negative=True):
+    sub = df[[x_col, y_col]].copy()
+    mask = sub.notna().all(axis=1) & np.isfinite(sub).all(axis=1)
+    if drop_negative:
+        mask &= (sub[x_col] >= 0) & (sub[y_col] >= 0)
+    sub = sub.loc[mask]
+    if sub.empty:
+        raise ValueError("No valid rows after cleaning for chini_data.")
+    x = sub[x_col].to_numpy(dtype=float)
+    y = sub[y_col].to_numpy(dtype=float)
+    if np.sum(x**2) == 0:
+        raise ValueError("sum(x^2) == 0; cannot fit a through-origin line.")
+    return x, y
+
+@lru_cache(maxsize=1)
+def _chini_slope_cached():
+    """
+    Compute and cache the through-origin slope for the registered dataset.
+    Units: (y units) / (x units), typically kg CH4/h per (m^3/day).
+    """
+    df = _CHINI_DATA["df"]
+    if df is None:
+        raise RuntimeError("Chini dataset not set. Call set_chini_dataset(df, ...) first.")
+    x_col = _CHINI_DATA["x_col"]
+    y_col = _CHINI_DATA["y_col"]
+    drop_negative = _CHINI_DATA["drop_negative"]
+
+    x, y = _clean_xy(df, x_col, y_col, drop_negative)
+    slope = float(np.sum(x * y) / np.sum(x**2))
+    return slope
+
+
+######## TARALLO ET AL FUNCTION #######
+def _tarallo_mid_kgCH4_per_m3(mj_per_kg_ch4=None, m3_per_gal=0.003785411784):
+
+    MJ_per_MG_mid = 6434.0  # Tarallo 2015 mid
     
-    Returns biogas production rate mid, low, and high
+    MJ_per_m3 = MJ_per_MG_mid / (1e6 * m3_per_gal)  # Convert MJ/MG → MJ/m^3
+    if mj_per_kg_ch4 is None:
+        mj_per_kg_ch4 = mj_per_kg_CH4()
+    return MJ_per_m3 / mj_per_kg_ch4  # kg CH4 / m^3 treated wastewater
 
-    Returns kg CH4 produced as biogas / hour
+##### Calculate biogas production rate based on flow rate #####
+def calc_biogas_production_rate(flow_m3_per_day, method):
     """
+    Return kg CH4/h given flow (m^3/day) and a method: 'chini_data' or 'tarallo_model'.
+    """
+    flow = np.asarray(flow_m3_per_day, dtype=float)
 
-    # Biogas production range for facilites, as reported in Tarallo et al., 2015
+    if method == "chini_data":
+        slope = _chini_slope_cached()          # kg CH4/h per (m^3/day)
+        return slope * flow                    # kg CH4/h
 
-    biogas_production_mid = 6434 # Units: MJ / MG
-    biogas_production_low = 6343 # Units: MJ / MG
-    biogas_production_high =  6874 # Units: MJ / MG
+    if method == "tarallo_model":
+        kgCH4_per_m3 = _tarallo_mid_kgCH4_per_m3()  # kg CH4 / m^3 treated
+        return kgCH4_per_m3 * flow / 24.0           # kg CH4 / h
 
-    # Convert to MJ / m3 
-    biogas_production_mid = biogas_production_mid * (1/m3_per_gal) * 1e-6 # Units: MJ / m3 treated
-
-    # Convert to kg CH4 / m3 
-    kgCH4_production_mid = biogas_production_mid * (1/mj_per_kg_CH4()) # Units: kg CH4 produced as biogas / m3 treated
-   
-    return kgCH4_production_mid * flow_m3_per_day /24 # final units: kg CH4 produced as biogas / hour 
+    raise ValueError("method must be 'chini_data' or 'tarallo_model'")
 
 
 ##### Calculate production-normalized CH4 emissions #####

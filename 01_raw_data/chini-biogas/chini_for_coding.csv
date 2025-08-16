@@ -9,7 +9,7 @@ BuffaloNY,Buffalo Sewer Authority,Not listed,41314,112.8797814,174134200,scf
 ChicagoIL,Metropolitan Water Reclamation District of Greater Chicago,Hanover,2921.9,7.983333333,111328,therms
 ChicagoIL,Metropolitan Water Reclamation District of Greater Chicago,Egan,8681.8,23.72076503,457588,therms
 ChicagoIL,Metropolitan Water Reclamation District of Greater Chicago,Stickney,224980,614.6994536,1093162,therms
-DenverCO,Metro Wastewater Reclamation District,R.W. Hite Facility,45980.60147,125.6300587,968752.8195,KCF
+DenverCO,Metro Wastewater Reclamation District,R.W. Hite Facility,45980.60147,125.6300587,968752.8195,MSCF
 DuluthMN,Western Lake Superior Sanitary District,Western Lake Superior Sanitary District Wastewater Treatment Facility,13070.65,35.71215847,206329392,scf
 ElPasoTX,El Paso Water Utilities,RBWWTP,10486.9,28.65273224,121391220,scf
 ElPasoTX,El Paso Water Utilities,HSWWTP,6945.31,18.97625683,78667674,scf
@@ -39,10 +39,10 @@ RenoNV,Public Works Department,TMWRF,9780.04,26.72142077,260120703.4,scf
 SacramentoCA,Not reported,Sacramento Regional Wastewater Treatment Plant,52532.4,143.5311475,2000,scfm
 SaltLakeCityUT,Salt Lake City Corporation,Salt Lake City Water Reclamation Plant,11125.17,30.39663934,109251549,scf
 SanDiegoCA,San Diego Public Utilities,Point Loma Wastewater Treatment Plant,53795.15,146.9812842,230512.4,MSCF
-SanJoseCA,San Jose water co,could not find,39234.03999,107.1968306,3091256,therm
+SanJoseCA,San Jose water co,could not find,39234.03999,107.1968306,3091256,therms
 SantaFeNM,Wastewater Management Division,Santa Fe Wastewater Treatment Plant,2114.1046,5.776242077,22684790,scf
 SeattleWA,Seattle Public Utilities,West Point Treatment Plant,37403.85,102.1963115,525983532,scf
-SpokaneWA,City of Spokane Water Department,Riverside Park Water Reclamation Facility,12352.05,33.74877049,1377065.72,therm
+SpokaneWA,City of Spokane Water Department,Riverside Park Water Reclamation Facility,12352.05,33.74877049,1377065.72,therms
 SyracuseNY,Onondaga County Water Environment Protection,Metro WWTP,20935.6,57.2010929,198866597,scf
 SyracuseNY,Onondaga County Water Environment Protection,Wetzel Road WWTP,864.41,2.361775956,12270048,scf
 TampaFL,The City of Tampa's Wastewater Department,Not specified - looked up and found Howard F. Curren Advanced Wastewater Treatment Plant (AWTP),21818,59.61202186,222437605,scf
