@@ -6,21 +6,25 @@ import numpy as np
 import pandas as pd
 import matplotlib.ticker as mticker
 import matplotlib.colors as mcolors
-from a_my_utilities import calc_annual_savings
+from a_my_utilities import calc_annual_savings, calc_annual_revenue, set_chini_dataset
 
+chini_data = pd.read_csv(pathlib.Path("02_clean_data", "chini_cleaned.csv"))  
 
-import matplotlib.pyplot as plt
-import numpy as np
-import matplotlib.ticker as mticker
-from a_my_utilities import calc_annual_savings
+set_chini_dataset(
+    chini_data,
+    x_col="flow_m3_per_day",
+    y_col="methane_gen_kgh",
+    drop_negative=True
+)
+
 
 def plot_methane_savings_vary_leak_rate(
-    biogas_production_rate,
     leak_fraction_capturable,
     electricity_price_per_kWh,
     ogi_cost=100000,
     plant_sizes_m3_per_day_range=(0, 1_200_000),
     leak_rates=np.linspace(0, 0.25, 200),
+    engine_efficiency=0.45,
     resolution=200,
     fig=None,
     ax=None,
@@ -42,11 +46,11 @@ def plot_methane_savings_vary_leak_rate(
     Z = np.zeros_like(X)
     for i in range(X.shape[0]):
         for j in range(X.shape[1]):
-            Z[i, j] = calc_annual_savings(
+            Z[i, j] = calc_annual_revenue(
                 plant_size=X[i, j],
-                biogas_production_rate=biogas_production_rate,
                 leak_rate=Y[i, j],
                 leak_fraction_capturable=leak_fraction_capturable,
+                engine_efficiency=engine_efficiency, 
                 electricity_price_per_kWh=electricity_price_per_kWh,
                 ogi_cost=ogi_cost
             )
@@ -85,8 +89,15 @@ def plot_methane_savings_vary_leak_rate(
     cs = ax.tricontour(Xf, Yf, Zf, levels=levels_line, colors='black', linewidths=2.0)
     ax.clabel(cs, inline=True, fontsize=10, fmt=label_formatter, rightside_up=True)
 
-    # Breakeven line
-    ax.tricontour(Xf, Yf, Zf, levels=[0], colors='black', linewidths=3.0, linestyles='solid', zorder=3)
+    # # Breakeven line
+    # ax.tricontour(Xf, Yf, Zf, levels=[0], colors='black', linewidths=3.0, linestyles='solid', zorder=3)
+
+    # Cost of OGI survey
+    cost1 = ax.tricontour(Xf, Yf, Zf, levels=[100_000], colors='black', linewidths=3.0, linestyles='dashed', zorder=3)
+        # Cost of OGI survey
+        #     
+    ax.clabel(cost1, inline=True, fmt={100_000: "OGI survey"}, fontsize=10)
+
 
     # Axes formatting
     ax.tick_params(direction='in', length=8, width=1.5, pad=6, labelsize=12)
@@ -118,15 +129,13 @@ def plot_methane_savings_vary_leak_rate(
     return ax
 
 
-
-
 def plot_methane_savings_vary_capturable(
-    biogas_production_rate,
     leak_rate,  # <-- fixed leak rate
     electricity_price_per_kWh,
     ogi_cost=100000,
     plant_sizes_m3_per_day_range=(0, 1_200_000),
     capturable_fraction_range=(0, 1.0),   # <-- now the y-axis variable
+    engine_efficiency=0.45,
     resolution=200,
     fig=None,
     ax=None,
@@ -165,11 +174,11 @@ def plot_methane_savings_vary_capturable(
     Z = np.zeros_like(X)
     for i in range(X.shape[0]):
         for j in range(X.shape[1]):
-            Z[i, j] = calc_annual_savings(
+            Z[i, j] = calc_annual_revenue(
                 plant_size=X[i, j],
-                biogas_production_rate=biogas_production_rate,
                 leak_rate=leak_rate,   # <-- fixed
                 leak_fraction_capturable=Y[i, j],  # <-- variable
+                engine_efficiency=engine_efficiency,
                 electricity_price_per_kWh=electricity_price_per_kWh,
                 ogi_cost=ogi_cost
             )
@@ -214,10 +223,17 @@ def plot_methane_savings_vary_capturable(
     ax.clabel(contour_lines, inline=True, fontsize=10, fmt=label_formatter, rightside_up=True)
 
     # Breakeven line
-    ax.tricontour(
-        X_flat, Y_flat, Z_flat,
-        levels=[0], colors='black', linewidths=3.0, linestyles='solid', zorder=3
-    )
+    # ax.tricontour(
+    #     X_flat, Y_flat, Z_flat,
+    #     levels=[0], colors='black', linewidths=3.0, linestyles='solid', zorder=3
+    # )
+
+    # Cost of OGI survey
+    cost1 = ax.tricontour(X_flat, Y_flat, Z_flat, levels=[100_000], colors='black', 
+                  linewidths=3.0, linestyles='dashed', zorder=3)
+    
+    ax.clabel(cost1, inline=True, fmt={100_000: "OGI survey"}, fontsize=10)
+
 
     # Axes formatting
     ax.tick_params(direction='in', length=8, width=1.5, pad=6, labelsize=12)

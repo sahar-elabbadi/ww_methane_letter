@@ -26,7 +26,7 @@ chini_data = pd.read_csv(chini_data_path)
 
 chini_data['flow_m3_per_day'] = chini_data.apply(lambda row: mgd_to_m3_per_day(row['facility_size_MGD']), axis=1)
 chini_data['biogas_gen_scf'] = chini_data.apply(lambda row: convert_to_scf(row['biogas_gen_value'], row['biogas_gen_units']), axis=1)
-chini_data['methane_gen_kgh'] = chini_data['biogas_gen_scf'] * METHANE_KG_PER_SCF * BIOGAS_FRACTION_CH4 / 366 / 24 # Convert from biogas scf generated in 2012 to kg/hr
+chini_data['methane_gen_kgh'] = chini_data['biogas_gen_scf'] * METHANE_KG_PER_SCF * BIOGAS_FRACTION_CH4 / 366 / 24 # Convert from biogas scf generated in 2012 to kg CH4/hr
 
 # Remove facilities with outlier data 
 
