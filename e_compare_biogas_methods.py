@@ -107,3 +107,61 @@ plot_chini_vs_tarallo_over_flow(flow_min=0, flow_max=1_000_000)
 plot_parity_chini_vs_tarallo(flow_min=0, flow_max=1_000_000)
 
 # %%
+
+#%% 
+from a_my_utilities import load_ch4_emissions_data
+
+def plot_parity_chini_vs_tarallo_on_measurements(
+    save_dir=pathlib.Path("03_figures"),
+    filename="chini_vs_tarallo_parity_measurements.png",
+    title="Compare Chini and Tarallo Estimates (Measurement Data)",
+    xlabel="Tarallo (kg/h)",
+    ylabel="Chini (kg/h)",
+    point_size=60
+):
+    """Parity (y=x) comparison of Chini vs Tarallo using facility measurement dataset."""
+    # Load the measurement dataset
+    measurement_data = load_ch4_emissions_data()
+
+    # Calculate biogas production estimates from both models
+    measurement_data["biogas_chini"] = calc_biogas_production_rate(
+        measurement_data["flow_m3_per_day"], "chini_data"
+    )
+    measurement_data["biogas_tarallo"] = calc_biogas_production_rate(
+        measurement_data["flow_m3_per_day"], "tarallo_model"
+    )
+
+    # Drop missing values if any
+    df = measurement_data.dropna(subset=["biogas_chini", "biogas_tarallo"])
+
+    # Axis limits
+    lim = max(df["biogas_chini"].max(), df["biogas_tarallo"].max()) * 1.05 if len(df) else 1.0
+
+    sns.set_style("whitegrid")
+    plt.figure(figsize=(6.5, 6))
+    plt.scatter(
+        df["biogas_tarallo"],
+        df["biogas_chini"],
+        s=point_size,
+        edgecolor="k",
+        alpha=0.7
+    )
+    plt.plot([0, lim], [0, lim], linestyle="--", linewidth=1)  # 1:1 line
+
+    plt.xlim(0, lim)
+    plt.ylim(0, lim)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.grid(True, linestyle="--", linewidth=0.5, alpha=0.7)
+    plt.tight_layout()
+
+    save_dir.mkdir(parents=True, exist_ok=True)
+    out = save_dir / filename
+    plt.savefig(out, dpi=300, bbox_inches="tight")
+    plt.show()
+    return out
+
+# Example usage (optional)
+plot_parity_chini_vs_tarallo_on_measurements()
+

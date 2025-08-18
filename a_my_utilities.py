@@ -310,7 +310,7 @@ def _tarallo_mid_kgCH4_per_m3(mj_per_kg_ch4=None, m3_per_gal=0.003785411784):
     return MJ_per_m3 / mj_per_kg_ch4  # kg CH4 / m^3 treated wastewater
 
 ##### Calculate biogas production rate based on flow rate #####
-def calc_biogas_production_rate(flow_m3_per_day, method="tarallo_model"):
+def calc_biogas_production_rate(flow_m3_per_day, method="chini_data"):
     """
     Return kg CH4/h given flow (m^3/day) and a method: 'chini_data' or 'tarallo_model'.
     ####TODO: Note I'm setting default to tarallo_mode for now, but this should be set to 'chini_data' once we have the Chini code working
