@@ -464,3 +464,22 @@ def calc_annual_savings(plant_size, biogas_production_rate, leak_rate, leak_frac
     annual_savings = leak_value * 24 * 365 - ogi_cost  # Annual savings in USD
     
     return annual_savings
+
+def calc_annual_revenue(plant_size, biogas_production_rate, leak_rate, leak_fraction_capturable, electricity_price_per_kWh, ogi_cost=100000):
+    """
+    Calculate the annual savings from capturing methane leaks.
+    
+    plant_size: size of the plant in m3/day
+    biogas_production_rate: biogas production rate as MJ biogas per m3 treated flow 
+    leak_rate: leak rate as a fraction of the biogas production rate
+    leak_fraction_capturable: fraction of the leak that can be captured
+    electricity_price_per_kWh: price of electricity in USD per kWh
+    ogi_cost: cost of OGI survey in USD
+    """
+    
+    leak_value = calc_leak_value(plant_size, biogas_production_rate, leak_rate, leak_fraction_capturable, electricity_price_per_kWh)
+    
+
+    annual_savings = leak_value * 24 * 365  # Annual revenue in USD
+    
+    return annual_savings
