@@ -1,3 +1,13 @@
+"""
+Script to: 
+1. Load Chini data
+2. Remove outliers 
+3. Saved cleaned data in 02_clean_data > "chini_cleaned.csv"
+4. Plot Chini data with fixed y-intercept at origin
+
+Note: does not depend on utility files for loading Chini regression 
+"""
+
 #%%
 # Imports
 import pathlib
@@ -11,7 +21,7 @@ from sklearn.linear_model import LinearRegression
 # Load utility data from Chini et al 
 # File saved in "01_raw_data", "chini-biogas", "chini_for_coding.csv"
 
-chini_data_path = Path("01_raw_data", "chini-biogas", "chini_for_coding.csv")
+chini_data_path = pathlib.Path("01_raw_data", "chini-biogas", "chini_for_coding.csv")
 chini_data = pd.read_csv(chini_data_path)
 
 chini_data['flow_m3_per_day'] = chini_data.apply(lambda row: mgd_to_m3_per_day(row['facility_size_MGD']), axis=1)

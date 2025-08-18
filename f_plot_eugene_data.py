@@ -78,7 +78,7 @@ ln1 = ax_bot.scatter(
     euguene_data["flow_m3_per_day"],
     color="tab:blue",
     alpha=0.6,
-    s=20,
+    s=60,
     label="Flow (m³/day)"
 )
 ax_bot.set_ylabel("Reported daily flow\n (m³/day)", fontsize=label_fontsize, color="black")
@@ -95,7 +95,7 @@ ln2 = ax2.scatter(
     euguene_data["methane_gen_kg_per_day"],
     color="tab:green",
     alpha=0.6,
-    s=20,
+    s=60,
     label="Methane (kg CH₄/day)"
 )
 ax2.set_ylabel("Reported biogas production\n(kg CH₄/day)", 
