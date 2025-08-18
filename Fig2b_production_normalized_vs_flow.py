@@ -5,10 +5,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pathlib
-from a_my_utilities import calc_biogas_production_rate, load_ch4_emissions_with_ad_only, calculate_production_normalized_ch4
+from a_my_utilities import set_chini_dataset, calc_biogas_production_rate, load_ch4_emissions_with_ad_only, calculate_production_normalized_ch4
 import matplotlib.ticker as mtick
 
+chini_data = pd.read_csv(pathlib.Path("02_clean_data", "chini_cleaned.csv"))  # or csv
 
+set_chini_dataset(
+    chini_data,
+    x_col="flow_m3_per_day",
+    y_col="methane_gen_kgh",
+    drop_negative=True
+)
 ################# AD FACILIITIES WITH REPORTED FLOW RATE (M3/DAY) ##########################
 
 
