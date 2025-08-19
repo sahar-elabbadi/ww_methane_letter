@@ -16,10 +16,10 @@ elec_price = 0.08  # $/kWh fixed for all panels
 max_plant_size_m3_per_day=1_600_000
 
 vmin = 0
-vmax = 2_000_000
+vmax = 2_100_000
 levels_fill = np.linspace(vmin, vmax, 100)  
 # levels_line = np.linspace(vmin, vmax, 10)    # default evenly spaced lines
-levels_line = [250_000, 500_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000, 4_000_000, 5_000_000]
+levels_line = [250_000, 500_000, 750_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000, 4_000_000, 5_000_000]
 
 
 # Shared cmap/norm for positives
@@ -99,7 +99,7 @@ axes[1,0].text(0.02, 0.04, "Leak rate: 5%", transform=axes[1, 0].transAxes, font
 
 
 
-# Panel (1,1): leak rate = 10%
+# Panel (1,1): leak rate = 15%
 plot_methane_savings_vary_capturable(
     leak_rate=0.15,
     electricity_price_per_kWh=elec_price,
