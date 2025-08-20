@@ -16,7 +16,7 @@ elec_price = 0.08  # $/kWh fixed for all panels
 max_plant_size_m3_per_day=1_600_000
 
 vmin = 0
-vmax = 2_100_000
+vmax = 4_200_000
 levels_fill = np.linspace(vmin, vmax, 100)  
 # levels_line = np.linspace(vmin, vmax, 10)    # default evenly spaced lines
 levels_line = [250_000, 500_000, 750_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000, 4_000_000, 5_000_000]
@@ -41,6 +41,7 @@ plot_methane_savings_vary_leak_rate(
     electricity_price_per_kWh=elec_price,
     ogi_cost=100000,
     plant_sizes_m3_per_day_range=(0, max_plant_size_m3_per_day),
+    leak_rates=np.linspace(0, 0.50, 200),
     engine_efficiency=0.45,
     fig=fig,
     ax=axes[0, 0],
@@ -61,6 +62,7 @@ params = {"leak_fraction_capturable": 0.8, "electricity_price_per_kWh": elec_pri
 plot_methane_savings_vary_leak_rate(
     leak_fraction_capturable=0.8,
     electricity_price_per_kWh=elec_price,
+    leak_rates=np.linspace(0, 0.50, 200),
     engine_efficiency=0.45,
     plant_sizes_m3_per_day_range=(0, max_plant_size_m3_per_day),
     ogi_cost=100000,

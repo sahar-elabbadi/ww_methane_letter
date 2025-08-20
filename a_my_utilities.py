@@ -419,15 +419,6 @@ def calc_leak_value(plant_size, leak_rate, leak_fraction_capturable, engine_effi
 
     methane_leakage_MJ_per_hr = methane_leakage_kg_per_hr * mj_per_kg_CH4() # Convert to MJ per hour
     # print(f'Methane leakage: {methane_leakage_MJ_per_hr} MJ/hr')
-
-    # # biogas_production_MJ_per_day = plant_size * biogas_production_rate
-    # # # print(f'Biogas production rate: {biogas_production_MJ_per_day} MJ/day')
-
-    # methane_leakage_MJ_per_hr = biogas_production_MJ_per_day * leak_rate * (1/24) # Convert to per hour
-    # # print(f'Methane leakage: {methane_leakage_MJ_per_hr} MJ/hr')
-   
-    # methane_leakage_kg_per_hr = methane_leakage_MJ_per_hr * (1/mj_per_kg_CH4()) # Convert to kg CH4 per hour
-    # # print(f'Methane leakage: {methane_leakage_kg_per_hr} kg CH4/hr')
    
     electricity_generation_potential_kWh_per_hour = methane_leakage_MJ_per_hr *\
           leak_fraction_capturable * (1/mj_per_kWh()) * engine_efficiency  # Convert to kWh per hour and multiply by engine efficiency
@@ -491,3 +482,31 @@ def calc_annual_revenue(plant_size, leak_rate, leak_fraction_capturable, engine_
     annual_revenue = leak_value * 24 * 365  # Annual revenue in USD
     
     return annual_revenue
+
+
+
+def solve_leak_rate_for_value(target_value_usd_per_year, plant_size, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh):
+    """
+    Solve for the methane leak rate (fraction of biogas lost) required 
+    to reach a target monetary value of leaks.
+    """
+
+    # Step 1: Convert target annual value to $/hr
+    target_value_usd_per_hour = target_value_usd_per_year / (24 * 365)
+
+    # Step 2: Biogas production in kg CH4/hr
+    biogas_prod_kg_hr = calc_biogas_production_rate(plant_size, method="chini_data")
+
+    # Step 3: Conversion factor (USD/hr per unit leak_rate)
+    conversion_factor = (
+        mj_per_kg_CH4()
+        * leak_fraction_capturable
+        * (1 / mj_per_kWh())
+        * engine_efficiency
+        * electricity_price_per_kWh
+    )
+
+    # Step 4: Solve for leak rate
+    leak_rate = target_value_usd_per_hour / (biogas_prod_kg_hr * conversion_factor)
+
+    return leak_rate
