@@ -1,5 +1,4 @@
 location,utility_name,facility_name,influent_2012_MG,facility_size_MGD,biogas_gen_value,biogas_gen_units,flow_m3_per_day,biogas_gen_scf,methane_gen_kgh
-AlbuquerqueNM,Albuquerque Bernalillo County Water Utility Authority ,Southside Water Reclamation Plant,20655.69,56.43631148,,,213634.6785218865,,
 AlexandriaVA,Alexandria Sewer,Not listed,12180.388,33.27974863,137991.3782,MSCF,125977.55263255986,137991378.20000002,195.80825756330603
 BakersfieldCA,Not listed,Plant 2 - name not listed,4989.948,13.6337377,59659000.0,scf,51609.31134954505,59659000.0,84.65546898907104
 BoiseID,City of Boise,West Boise,5515.83,15.07057377,86030950.0,scf,57048.327540599304,86030950.0,122.07697782103826
@@ -18,7 +17,6 @@ FortWorthTX,Forth Worth Water Department,Villlage Creek Water Reclamation Facili
 GreenvilleSC,Greenville Water,Durbin WWTP,549.65,1.501775956,3709528.0,scf,5684.840400770266,3709528.0,5.263779690710382
 GreenvilleSC,Greenville Water,Gilder WWTP,1374.44,3.755300546,22284115.0,scf,14215.358939290036,22284115.0,31.620915642759567
 GreenvilleSC,Greenville Water,Lower Reedy WWTP,1932.74,5.280710383,38351800.0,scf,19989.66331169935,38351800.0,54.4207850546448
-HonoluluHI,Board of Water Supply,Honouliuli Water Recycling Facility,,,12294363.0,scf,,12294363.0,17.44556673237705
 LasVegasNV,LVVWD,Bonanza/Mojave Water Resource Center,14426.1,39.41557377,236718970.0,scf,149204.17742207932,236718970.0,335.90163133743164
 LincolnNE,Lincoln Wastewater System,Theresa Street WWTF,8699.58972,23.76937082,133967709.4,scf,89976.85640029375,133967709.4,190.0987155106284
 LincolnNE,Lincoln Wastewater System,Northeast WWTF,823.028732,2.248712383,6468208.7,scf,8512.302353434921,6468208.7,9.178317454494536
@@ -27,7 +25,6 @@ MadisonWI,Madison Metropolitan Sewage District,Nine Springs Wastewater Treatment
 MadisonWI,Madison Metropolitan Sewerage District,Nine Springs Wastewater Treatment Plant,13420.0,36.66666667,331.36,MMSCF,138798.43209261802,331360000.0,470.19621857923494
 MemphisTN,"Memphis Light, Gas, and Water",MC Stiles WWTP,29126.9,79.58169399,338700000.0,scf,301249.482220428,338700000.0,480.6115983606557
 MilwaukeeWI,Milwaukee Metropolitan Sewerage District,South Shore WRF,57285.0,156.5163934,128009.0,DTherms,592478.9999655399,196936923.07692307,279.4513415300546
-NashvilleTN,Metro Water Services,Nashville Central Wastewater Treatment Plant,,,125360687.0,scf,,125360687.0,177.885444790847
 OmahaNE,Metropolitan Utilities District,Papillion Creek WWTP,29658.69,81.03467213,132.875,MMSCF,306749.6027934784,132875000.0,188.54817281420767
 PeoriaIL,Greater Peoria Sanitary and Sewage Disposal District,Beardsley Water Reclamation Facility,25594.0,69.92896175,100610.0,MSCF,264709.9158513353,100610000.0,142.76449043715846
 ProvoUT,Not reported,Not reported,4693.95,12.825,47796306.0,scf,48547.9061298,47796306.0,67.82243584999999

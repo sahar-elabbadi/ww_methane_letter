@@ -1,11 +1,13 @@
+#%% 
 import pandas as pd 
 import pathlib
 import numpy as np
 from functools import lru_cache
+from scipy import stats
+
 
 
 import pandas as pd
-import ast
 
 
 ####### GLOBAL CONSTANTS ########################################
@@ -14,6 +16,7 @@ BIOGAS_FRACTION_CH4 = 0.65  # Assume 65% CH4 in biogas. Source: Metcalf & Eddy, 
 METHANE_SCF_PER_THERM = 100
 METHANE_MMBTU_PER_THERM = 0.1
 METHANE_KG_PER_SCF = 0.019176  # kg of methane per scf
+METHANE_MJ_PER_KG = 50.4  # MJ per kg of methane 
 
 ####### Data Loading ########################################
 
@@ -173,7 +176,7 @@ def load_ch4_emissions_with_ad_only():
 # 1 US gallon = 0.003785411784 m³
 # 1 MGD = 1e6 gallons/day → million m³/day = (1e6 * 0.003785411784) / 1e6 = 0.003785411784
 m3_per_gal = 0.003785411784
-mj_per_kg_ch4 = 50.4 # energy content of methane
+# mj_per_kg_ch4 = 50.4 # energy content of methane
 
 def m3_per_mg(): 
     return m3_per_gal * 1e6 # Convert MG to m3 
@@ -206,11 +209,11 @@ def convert_mj_to_kg_CH4(mj_ch4):
     """
     Convert MJ of energy in methane to kg CH4
     """
-    return mj_ch4 * (1/mj_per_kg_ch4)
+    return mj_ch4 * (1/METHANE_MJ_PER_KG)
 
 
 def mj_per_kg_CH4(): 
-    return mj_per_kg_ch4
+    return METHANE_MJ_PER_KG
 
 
 
@@ -267,7 +270,9 @@ def set_chini_dataset(df, x_col="flow_m3_per_day", y_col="methane_gen_kgh", drop
     _CHINI_DATA["x_col"] = x_col
     _CHINI_DATA["y_col"] = y_col
     _CHINI_DATA["drop_negative"] = drop_negative
-    _chini_slope_cached.cache_clear()  # reset cache when dataset changes
+    # Clear all caches that depend on the registered dataset
+    _chini_stats_cached.cache_clear()
+    # (Optional: if you still keep old slope-only cache elsewhere, clear it too)
 
 def _clean_xy(df, x_col, y_col, drop_negative=True):
     sub = df[[x_col, y_col]].copy()
@@ -283,22 +288,154 @@ def _clean_xy(df, x_col, y_col, drop_negative=True):
         raise ValueError("sum(x^2) == 0; cannot fit a through-origin line.")
     return x, y
 
-@lru_cache(maxsize=1)
-def _chini_slope_cached():
+def compute_through_origin_regression(
+    data,
+    x_col="flow_m3_per_day",
+    y_col="methane_gen_kgh",
+    *,
+    drop_negative=False,
+):
     """
-    Compute and cache the through-origin slope for the registered dataset.
-    Units: (y units) / (x units), typically kg CH4/h per (m^3/day).
+    Compute slope and Excel-style through-origin R² for y ~ m * x.
+
+    Returns:
+        dict with keys:
+            slope (float): least-squares slope through the origin
+            r2_origin (float): 1 - SS_res / sum(y^2)  (Excel when intercept=0)
+            n (int): number of points used
+    """
+    x, y = _clean_xy(data, x_col, y_col, drop_negative=drop_negative)
+
+    denom = float(np.sum(x**2))
+    slope = float(np.sum(x * y) / denom)
+
+    y_pred = slope * x
+    ss_res = float(np.sum((y - y_pred) ** 2))
+    ss_tot_origin = float(np.sum(y ** 2))
+    r2_origin = (1.0 - ss_res / ss_tot_origin) if ss_tot_origin > 0.0 else float("nan")
+
+    return {
+        "slope": slope,
+        "r2_origin": r2_origin,
+        "n": int(len(x)),
+    }
+
+# ----------------------------
+# Cached stats for the registered dataset
+# ----------------------------
+@lru_cache(maxsize=1)
+def _chini_stats_cached():
+    """
+    Compute and cache stats (slope, R², n) for the currently registered dataset.
+    Uses Excel-style through-origin R² (intercept forced to 0).
     """
     df = _CHINI_DATA["df"]
     if df is None:
         raise RuntimeError("Chini dataset not set. Call set_chini_dataset(df, ...) first.")
-    x_col = _CHINI_DATA["x_col"]
-    y_col = _CHINI_DATA["y_col"]
-    drop_negative = _CHINI_DATA["drop_negative"]
+    return compute_through_origin_regression(
+        df,
+        x_col=_CHINI_DATA["x_col"],
+        y_col=_CHINI_DATA["y_col"],
+        drop_negative=_CHINI_DATA["drop_negative"],
+    )
 
-    x, y = _clean_xy(df, x_col, y_col, drop_negative)
-    slope = float(np.sum(x * y) / np.sum(x**2))
-    return slope
+# @lru_cache(maxsize=1)
+# def _chini_slope_cached():
+#     """
+#     Compute and cache the through-origin slope for the registered dataset.
+#     Units: (y units) / (x units), typically kg CH4/h per (m^3/day).
+#     """
+#     df = _CHINI_DATA["df"]
+#     if df is None:
+#         raise RuntimeError("Chini dataset not set. Call set_chini_dataset(df, ...) first.")
+#     x_col = _CHINI_DATA["x_col"]
+#     y_col = _CHINI_DATA["y_col"]
+#     drop_negative = _CHINI_DATA["drop_negative"]
+
+#     x, y = _clean_xy(df, x_col, y_col, drop_negative)
+#     slope = float(np.sum(x * y) / np.sum(x**2))
+#     return slope
+
+# ----------------------------
+# Public getters
+# ----------------------------
+def get_chini_xy():
+    df = _CHINI_DATA["df"]
+    return _clean_xy(df, _CHINI_DATA["x_col"], _CHINI_DATA["y_col"], _CHINI_DATA["drop_negative"])
+
+def get_chini_stats():
+    """
+    Return a dict with keys: slope, r2_origin, n for the registered dataset.
+    """
+    # Return a shallow copy to avoid accidental mutation of cached dict
+    stats = _chini_stats_cached()
+    return dict(stats)
+
+def get_chini_slope():
+    """Convenience: slope (kg CH4/h per (m^3/day))."""
+    return _chini_stats_cached()["slope"]
+
+def get_chini_r2():
+    """Convenience: Excel-style through-origin R² (intercept=0)."""
+    return _chini_stats_cached()["r2_origin"]
+
+
+def chini_confidence_intervals(flow_m3_per_day, alpha=0.05):
+    """
+    Compute predicted biogas production and confidence/prediction intervals
+    for the Chini through-origin regression.
+
+    Parameters
+    ----------
+    flow_m3_per_day : array-like
+        Input flow rates (m^3/day).
+    alpha : float
+        Significance level (default=0.05 → 95% intervals).
+
+    Returns
+    -------
+    dict of numpy arrays:
+        - estimate : predicted mean value (kg CH4/h)
+        - lower_ci, upper_ci : confidence interval of mean response
+        - lower_pi, upper_pi : prediction interval (mean + scatter)
+    """
+    stats_cached = get_chini_stats()
+    slope = stats_cached["slope"]
+
+    # pull cleaned dataset to match regression
+    df = _CHINI_DATA["df"]
+    if df is None:
+        raise RuntimeError("Chini dataset not set. Call set_chini_dataset(df, ...) first.")
+    x, y = _clean_xy(df, _CHINI_DATA["x_col"], _CHINI_DATA["y_col"], _CHINI_DATA["drop_negative"])
+    n = len(x)
+
+    y_hat = slope * x
+    residuals = y - y_hat
+    sigma2 = float(np.sum(residuals**2) / (n - 1))
+
+    Sxx = float(np.sum(x**2))
+    var_slope = sigma2 / Sxx
+
+    t_crit = stats.t.ppf(1 - alpha/2, df=n-1)
+
+    flow = np.asarray(flow_m3_per_day, dtype=float)
+    est = calc_biogas_production_rate(flow, method="chini_data")
+
+    se_mean = np.sqrt(var_slope * flow**2)
+    se_pred = np.sqrt(se_mean**2 + sigma2)
+
+    lower_ci = est - t_crit * se_mean
+    upper_ci = est + t_crit * se_mean
+    lower_pi = est - t_crit * se_pred
+    upper_pi = est + t_crit * se_pred
+
+    return {
+        "estimate": est,
+        "lower_ci": lower_ci,
+        "upper_ci": upper_ci,
+        "lower_pi": lower_pi,
+        "upper_pi": upper_pi,
+    }
 
 
 ######## TARALLO ET AL FUNCTION #######
@@ -319,7 +456,7 @@ def calc_biogas_production_rate(flow_m3_per_day, method="chini_data"):
     flow = np.asarray(flow_m3_per_day, dtype=float)
 
     if method == "chini_data":
-        slope = _chini_slope_cached()          # kg CH4/h per (m^3/day)
+        slope = get_chini_slope()        # kg CH4/h per (m^3/day)
         return slope * flow                    # kg CH4/h
 
     if method == "tarallo_model":

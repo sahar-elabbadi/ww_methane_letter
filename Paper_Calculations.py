@@ -6,10 +6,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pathlib
 from a_my_utilities import set_chini_dataset, calc_biogas_production_rate, load_ch4_emissions_with_ad_only, calculate_production_normalized_ch4, calc_annual_revenue
-from a_my_utilities import solve_leak_rate_for_value
+from a_my_utilities import solve_leak_rate_for_value, get_chini_slope, METHANE_MJ_PER_KG, get_chini_r2
 
 import matplotlib.ticker as mtick
 
+###### LOAD DATA ######
+
+# Load Chini dataset and cache linear regression 
 chini_data = pd.read_csv(pathlib.Path("02_clean_data", "chini_cleaned.csv"))  # or csv
 
 set_chini_dataset(
@@ -19,8 +22,7 @@ set_chini_dataset(
     drop_negative=True
 )
 
-
-
+# Load measurement data
 measurement_data_ad = calculate_production_normalized_ch4(
     load_data_func=load_ch4_emissions_with_ad_only,
     calc_biogas_func=calc_biogas_production_rate
@@ -30,6 +32,29 @@ measurement_data_ad = calculate_production_normalized_ch4(
 measurement_data_ad = measurement_data_ad[
     (measurement_data_ad['biogas_production_used_kgCH4_per_hr'] > 0) &
     (measurement_data_ad['production_normalized_CH4_percent']> 0)]
+
+######### Section: Comparison of measurement-based emissions factors from WRRFs #######
+
+# How many facilities do not report biogas production?
+no_witout_biogas = measurement_data_ad[measurement_data_ad['reported_biogas_production'] == 'no'].shape[0]
+print(f"Number of facilities that do not report biogas production: {no_witout_biogas}")
+# Percent of facilities that do not report biogas production:
+print(f"Percent of facilities that do not report biogas production: {no_witout_biogas / measurement_data_ad.shape[0] * 100:.2f}%")
+
+# What is the slope of the Chini dataset in MJ biogas per m3? 
+
+slope = get_chini_slope()          # kg CH4/h per (m^3 wastewater/day)
+slope_kg_per_m3 = slope * 24  # Convert to kg CH4 per m3 wastewater
+slope_MJ_per_m3 = slope_kg_per_m3 *  METHANE_MJ_PER_KG # Convert to MJ biogas per m3 wastewater
+
+# print
+print(f"Chini slope: {slope:.4f} kg CH4/h per m3 wastewater")
+print(f"Chini slope: {slope_kg_per_m3:.4f} kg CH4 per m3 wastewater")
+print(f"Chini slope: {slope_MJ_per_m3:.4f} MJ biogas per m3 wastewater")
+
+# What is the R2 of the Chini dataset?
+r2 = get_chini_r2()
+print(f"Chini R2: {r2:.4f}")
 
 # %%
 
@@ -63,5 +88,20 @@ required_leak_rate = solve_leak_rate_for_value(
     electricity_price
 )
 
+
+print(f"Fraction gas capturable: {leak_fraction_capturable}")
 print(f"Required leak rate for a plant that is {plant_size/1e6:.1f}Mm3/day: {required_leak_rate:.3%}")
+leak_fraction_capturable = 0.5
+
+required_leak_rate = solve_leak_rate_for_value(
+    target_annual, 
+    plant_size, 
+    leak_fraction_capturable, 
+    engine_efficiency, 
+    electricity_price
+)
+
+print(f"Fraction gas capturable: {leak_fraction_capturable}")
+print(f"Required leak rate for a plant that is {plant_size/1e6:.1f}Mm3/day: {required_leak_rate:.3%}")
+
 # %%
