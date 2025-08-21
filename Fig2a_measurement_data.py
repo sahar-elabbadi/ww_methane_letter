@@ -132,7 +132,7 @@ def plot_emissions_vs_flow(
 
     def _fit_and_plot(x, y, label, color):
         fit = _powerlaw_fit(x, y)
-        a, b = fit["a"], fit["b"]
+        a, b, r2 = fit["a"], fit["b"], fit["r2_loglog"]
 
         # Smooth curve across the data span
         xv = np.asarray(x, dtype=float)
@@ -142,7 +142,8 @@ def plot_emissions_vs_flow(
         # Legend with LaTeX superscripts and sci notation
         a_tex = _format_sci_tex(a, legend_precision)
         eqn = rf"$y = {a_tex}\,x^{{{b:.2f}}}$"
-        ax.plot(xfit, yfit, linewidth=linewidth, color=color, label=f"Trend: {label} {eqn}")
+        r2_text = rf"$R^{2}={r2:.2f}$"
+        ax.plot(xfit, yfit, linewidth=linewidth, color=color, label=f"Trend: {label} {eqn} ({r2_text})")
 
         return fit
 
@@ -172,7 +173,7 @@ def plot_emissions_vs_flow(
     fit_all = _fit_and_plot(
         filtered['flow_m3_per_day'],
         filtered['ch4_kg_per_hr'],
-        "All",
+        "All data",
         "black"
     )
     coeffs_out["All"] = fit_all
