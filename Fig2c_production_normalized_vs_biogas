@@ -7,6 +7,8 @@ import seaborn as sns
 import pathlib
 from a_my_utilities import set_chini_dataset, calc_biogas_production_rate, load_ch4_emissions_with_ad_only, calculate_production_normalized_ch4
 import matplotlib.ticker as mtick
+from scipy.stats import linregress
+
 
 chini_data = pd.read_csv(pathlib.Path("02_clean_data", "chini_cleaned.csv"))  # or csv
 
@@ -33,21 +35,39 @@ measurement_data_ad = measurement_data_ad[
 # Plotting
 
 # Custom group labels
-measurement_data_ad['source_group'] = (
+
+# TODO: note that I can rewrite this simpler using reported_biogas_production yes/no
+measurement_data_ad['data_availability'] = (
     measurement_data_ad['source']
     .fillna('')  # avoid errors if source is NaN
     .apply(lambda x: (
-        'Moore et al., 2023' if 'Moore' in x
-        else 'Fredenslund et al., 2023' if 'Fredenslund et al., 2023' in x
-        else 'Song et al., 2023 (compilation)'
+        'Biogas data available' if 'Fredenslund et al., 2023' in x
+        else 'Biogas production interpolated from flow'
     ))
 )
 
+
+# Based on source data
+# measurement_data_ad['source_group'] = (
+#     measurement_data_ad['source']
+#     .fillna('')  # avoid errors if source is NaN
+#     .apply(lambda x: (
+#         'Moore et al., 2023' if 'Moore' in x
+#         else 'Fredenslund et al., 2023' if 'Fredenslund et al., 2023' in x
+#         else 'Song et al., 2023 (compilation)'
+#     ))
+# )
+
 # Custom palette
 palette = {
+    # Sources: 
     'Moore et al., 2023': '#E24A33',
     'Fredenslund et al., 2023': '#226f90',
     'Song et al., 2023 (compilation)': '#999999',
+    # Data availability: 
+    'Biogas data available': '#E24A33',
+    'Biogas production interpolated from flow': '#226f90',
+
 }
 
 # Plot
@@ -56,7 +76,7 @@ sns.scatterplot(
     data=measurement_data_ad,
     x='biogas_production_used_kgCH4_per_hr',
     y='production_normalized_CH4_percent',
-    hue='source_group',
+    hue='data_availability', # <-- change to "source_group" for plots that are colored by source data
     palette=palette,
     edgecolor='k',
     s=80
@@ -80,17 +100,78 @@ def percent_formatter(y, _):
 
 ax.yaxis.set_major_formatter(percent_formatter)
 
+# Helper: scientific notation for LaTeX legend
+def _sci_tex(num, precision=2):
+    s = f"{num:.{precision}e}"  # e.g., '1.23e-04'
+    base, exp = s.split("e")
+    return rf"{base} \times 10^{{{int(exp)}}}"
+
+# Helper: fit power law on log–log and draw line
+def _fit_and_plot(group_df, label, color, line_width=3.5):
+    # extract & clean
+    x = group_df['biogas_production_used_kgCH4_per_hr'].to_numpy()
+    y = group_df['production_normalized_CH4_percent'].to_numpy()  # fraction 0–1
+    m = np.isfinite(x) & np.isfinite(y) & (x > 0) & (y > 0)
+    x, y = x[m], y[m]
+    if x.size < 2:
+        return None  # not enough points to fit
+
+    # log–log fit
+    logx, logy = np.log(x), np.log(y)
+    res = linregress(logx, logy)
+    b = float(res.slope)
+    a = float(np.exp(res.intercept))
+    r2 = float(res.rvalue**2)
+
+    # line span within this group's x-range
+    xfit = np.geomspace(x.min(), x.max(), 200)
+    yfit = a * xfit**b
+
+    # label in percent units (display only)
+    a_tex_pct = _sci_tex(100 * a, 2)
+    eqn = rf"$y(\%) = {a_tex_pct}\,x^{{{b:.2f}}}$ (R$^2$={r2:.3f})"
+
+    plt.plot(xfit, yfit, lw=line_width, color=color, label=f"Trend: {label} {eqn}")
+    return {"a": a, "b": b, "r2_loglog": r2, "n": int(x.size)}
+
+# Colors for the two groups (fall back to specified palette if present)
+color_available = palette.get('Biogas data available', '#1f77b4') if 'palette' in globals() else '#1f77b4'
+color_interp    = palette.get('Biogas production interpolated from flow', '#ff7f0e') if 'palette' in globals() else '#ff7f0e'
+
+# Subsets
+df_available = measurement_data_ad[measurement_data_ad['data_availability'] == 'Biogas data available']
+df_interp    = measurement_data_ad[measurement_data_ad['data_availability'] == 'Biogas production interpolated from flow']
+
+# 1) Biogas data available
+_fit_and_plot(df_available, "Biogas data available", color_available)
+
+# 2) Biogas data interpolated from flow
+_fit_and_plot(df_interp, "Biogas production interpolated from flow", color_interp)
+
+# 3) All data (black)
+_fit_and_plot(measurement_data_ad, "All", "black")
+
+# De-duplicate legend entries (keeps scatter groups + three trendlines once)
+handles, labels = plt.gca().get_legend_handles_labels()
+seen = set(); new_h, new_l = [], []
+for h, l in zip(handles, labels):
+    if l not in seen and l != "_nolegend_":
+        new_h.append(h); new_l.append(l); seen.add(l)
+plt.legend(new_h, new_l, title="Data availability")
+
 # Labels and layout
 plt.xlabel("Biogas production rate (kg CH₄/hr)")
 plt.ylabel("Production Normalized CH₄ Emissions (%)")
 plt.title("Production Normalized Methane Emissions vs. Biogas Production (AD Only)")
 plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-plt.legend(title='Source')
+plt.legend()
 plt.tight_layout()
 
 # Save with AD-specific filename
 save_path = pathlib.Path("03_figures", "Figure_2c.png")
 plt.savefig(save_path, dpi=300, bbox_inches='tight')
 plt.show()
+
+## %%
 
 # %%

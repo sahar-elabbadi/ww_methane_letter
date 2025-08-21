@@ -206,6 +206,162 @@ def plot_emissions_vs_flow(
 
     return export_blob
 
+## TRY OUT ADDING BOX PLOTS
+
+import matplotlib.gridspec as gridspec
+
+def plot_emissions_vs_flow_with_boxplot(
+    data,
+    group_col,
+    group_label_map=None,
+    group_label_func=None,
+    palette=None,
+    linewidth=2,
+    save_dir=pathlib.Path("03_figures"),
+    title="Methane Emissions vs. Flow Rate by Group (Log-Log)",
+    export_coeffs_py=pathlib.Path("coefficients_emissions.py"),
+    export_coeffs_json=pathlib.Path("coefficients_emissions.json"),
+    legend_precision=2
+):
+    """
+    Plots CH4 vs Flow (log–log) with 3 power-law trendlines and adds 
+    a side boxplot of emissions by group for distribution comparison.
+    """
+
+    # Filter valid rows (strictly positive for log space)
+    filtered = data[
+        (data['flow_m3_per_day'] > 0) &
+        (data['ch4_kg_per_hr'] > 0)
+    ].copy()
+
+    # Apply group labels
+    if group_label_func is not None:
+        filtered['group'] = filtered[group_col].apply(group_label_func)
+    elif group_label_map is not None:
+        filtered['group'] = filtered[group_col].map(group_label_map)
+    else:
+        filtered['group'] = filtered[group_col]
+    filtered = filtered.dropna(subset=['group'])
+
+    # Setup figure with two columns (scatter + boxplot)
+    fig = plt.figure(figsize=(10, 6))
+    gs = gridspec.GridSpec(1, 2, width_ratios=[4, 1], wspace=0.05)
+
+    # --- Scatter + fits (left panel) ---
+    ax_scatter = plt.subplot(gs[0])
+    sns.scatterplot(
+        data=filtered,
+        x='flow_m3_per_day',
+        y='ch4_kg_per_hr',
+        hue='group',
+        palette=palette,
+        edgecolor='k',
+        s=80,
+        alpha=0.8,
+        ax=ax_scatter
+    )
+
+    ax_scatter.set_xscale('log')
+    ax_scatter.set_yscale('log')
+    ax_scatter.set_xlabel("Flow (m³/day)")
+    ax_scatter.set_ylabel("CH₄ Emissions (kg/hr)")
+    ax_scatter.set_title(title)
+    ax_scatter.grid(True, which='both', linestyle='--', linewidth=0.5)
+
+    coeffs_out = {}
+
+    def _color_for(label, fallback="black"):
+        if palette and label in palette:
+            return palette[label]
+        return fallback
+
+    def _fit_and_plot(x, y, label, color):
+        fit = _powerlaw_fit(x, y)
+        a, b, r2 = fit["a"], fit["b"], fit["r2_loglog"]
+
+        # Smooth curve across the data span
+        xv = np.asarray(x, dtype=float)
+        xfit = np.geomspace(np.nanmin(xv[xv > 0]), np.nanmax(xv), 200)
+        yfit = a * xfit**b
+
+        # Legend with LaTeX superscripts and sci notation
+        a_tex = _format_sci_tex(a, legend_precision)
+        eqn = rf"$y = {a_tex}\,x^{{{b:.2f}}}$"
+        r2_text = rf"$R^{2}={r2:.2f}$"
+        ax_scatter.plot(xfit, yfit, linewidth=linewidth, color=color, label=f"Trend: {label} {eqn} ({r2_text})")
+
+        return fit
+
+    # 1) Has AD
+    mask_ad = filtered['group'] == 'Has AD'
+    if mask_ad.any():
+        coeffs_out["Has AD"] = _fit_and_plot(
+            filtered.loc[mask_ad, 'flow_m3_per_day'],
+            filtered.loc[mask_ad, 'ch4_kg_per_hr'],
+            "Has AD",
+            _color_for('Has AD', '#1f77b4')
+        )
+
+    # 2) No AD
+    mask_no = filtered['group'] == 'No AD'
+    if mask_no.any():
+        coeffs_out["No AD"] = _fit_and_plot(
+            filtered.loc[mask_no, 'flow_m3_per_day'],
+            filtered.loc[mask_no, 'ch4_kg_per_hr'],
+            "No AD",
+            _color_for('No AD', '#ff7f0e')
+        )
+
+    # 3) All
+    coeffs_out["All"] = _fit_and_plot(
+        filtered['flow_m3_per_day'],
+        filtered['ch4_kg_per_hr'],
+        "All data",
+        "black"
+    )
+
+    # Clean legend
+    handles, labels = ax_scatter.get_legend_handles_labels()
+    seen = set()
+    new_h, new_l = [], []
+    for h, l in zip(handles, labels):
+        if l not in seen:
+            new_h.append(h); new_l.append(l); seen.add(l)
+    ax_scatter.legend(new_h, new_l, title=group_col.replace('_', ' ').capitalize())
+
+    # --- Boxplot (right panel, aligned y-axis) ---
+    ax_box = plt.subplot(gs[1], sharey=ax_scatter)
+    sns.boxplot(
+        data=filtered,
+        y='ch4_kg_per_hr',
+        x='group',
+        palette=palette,
+        ax=ax_box
+    )
+    ax_box.set_yscale('log')
+    ax_box.set_xlabel("")
+    ax_box.set_ylabel("")
+    ax_box.tick_params(axis='x', rotation=0)
+    ax_box.tick_params(axis='y', which='both', left=False, labelleft=False)
+
+
+    plt.tight_layout()
+
+    # Save figure
+    save_dir.mkdir(parents=True, exist_ok=True)
+    save_path = save_dir / "Figure_2a_with_boxplot.png"
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.show()
+
+    # Export coefficients
+    export_blob = {"model": "power", "coefficients": coeffs_out}
+    with open(export_coeffs_json, "w", encoding="utf-8") as f:
+        json.dump(export_blob, f, indent=2)
+    save_coeffs_as_py(export_coeffs_py, export_blob, var_name="EMISSIONS_FLOW_COEFFS")
+
+    return export_blob
+
+
 
 coeffs = plot_emissions_vs_flow(
     data=measurement_data,
@@ -218,6 +374,23 @@ coeffs = plot_emissions_vs_flow(
     export_coeffs_json=pathlib.Path("coefficients_emissions.json"),
     legend_precision=2
 )
+
+
+
+coeffs = plot_emissions_vs_flow_with_boxplot(
+    data=measurement_data,
+    group_col='has_ad',
+    group_label_map={'yes': 'Has AD', 'no': 'No AD'},
+    palette={'Has AD': '#1f77b4', 'No AD': '#ff7f0e'},
+    title="Methane Emissions by Anaerobic Digestion (Log-Log)",
+    linewidth=4,
+    export_coeffs_py=pathlib.Path("coefficients_emissions.py"),
+    export_coeffs_json=pathlib.Path("coefficients_emissions.json"),
+    legend_precision=2
+)
+
+
+
 
 #%% 
 ## EXAMINE RESIDUALS 
