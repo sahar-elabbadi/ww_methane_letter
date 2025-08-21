@@ -278,3 +278,32 @@ fredenslund_data = clean_fredenslund_data(fredenslund_with_pe)
 measurement_data = pd.concat([moore_data, song_data, fredenslund_data], ignore_index=True)
 save_path = pathlib.Path("02_clean_data", "measurement_data.csv")
 measurement_data.to_csv(save_path, index=False)
+
+
+#%%
+####################### LOAD AND CLEAN NATIONAL DATA FROM EL ABBADI, FENG ET AL. 2025 ######################
+
+import pandas as pd 
+import pathlib
+from a_my_utilities import load_chp_facilities, load_ad_facilities, M3_PER_MG
+
+national_wrrf_data = pd.read_excel(pathlib.Path('01_raw_data', 'ElAbbadi2025_supplementary_database_C.xlsx'))
+
+#load wastewater treatment plant (WWTP) data 
+data_path = pathlib.Path("01_raw_data", "ElAbbadi2025_supplementary_database_C.xlsx")
+wwtp_data = pd.read_excel(data_path)
+
+#load combined heat and power (CHP) and anaerobic digester (AD) facilities data
+chp_data = load_chp_facilities()
+ad_data = load_ad_facilities()
+
+#convert flow data from MGD to Mm3/day
+chp_data['flow_m3_per_day'] = chp_data['flow_mgd'] * M3_PER_MG * 1e6
+ad_data['flow_m3_per_day'] = ad_data['flow_mgd'] * M3_PER_MG * 1e6
+
+# Save files
+chp_save_path = pathlib.Path("02_clean_data", "chp_data.csv")
+chp_data.to_csv(chp_save_path, index=False)
+
+ad_save_path = pathlib.Path("02_clean_data", "ad_data.csv")
+ad_data.to_csv(ad_save_path, index=False)

@@ -17,6 +17,7 @@ METHANE_SCF_PER_THERM = 100
 METHANE_MMBTU_PER_THERM = 0.1
 METHANE_KG_PER_SCF = 0.019176  # kg of methane per scf
 METHANE_MJ_PER_KG = 50.4  # MJ per kg of methane 
+M3_PER_MG = 0.003785411784
 
 ####### Data Loading ########################################
 
@@ -103,7 +104,7 @@ def load_and_clean_facility_data(filepath: str) -> pd.DataFrame:
 def load_chp_facilities():
     # Load the CSV using your custom loader
     wwtp_data = load_and_clean_facility_data(pathlib.PurePath('01_raw_data',
-                                                               'supplementary_database_C.xlsx'))
+                                                               'ElAbbadi2025_supplementary_database_C.xlsx'))
 
     # Filter for energy recovery facilities and copy the slice
     energy_recovery = wwtp_data[
@@ -117,7 +118,7 @@ def load_chp_facilities():
 def load_ad_facilities():
     # Load the CSV using your custom loader
     wwtp_data = load_and_clean_facility_data(pathlib.PurePath('01_raw_data',
-                                                               'supplementary_database_C.xlsx'))
+                                                               'ElAbbadi2025_supplementary_database_C.xlsx'))
 
     # Filter for energy recovery facilities and copy the slice
     anaerobic_digestion = wwtp_data[
@@ -175,11 +176,11 @@ def load_ch4_emissions_with_ad_only():
 
 # 1 US gallon = 0.003785411784 m³
 # 1 MGD = 1e6 gallons/day → million m³/day = (1e6 * 0.003785411784) / 1e6 = 0.003785411784
-m3_per_gal = 0.003785411784
+# M3_PER_MG = 0.003785411784 # moved above
 # mj_per_kg_ch4 = 50.4 # energy content of methane
 
 def m3_per_mg(): 
-    return m3_per_gal * 1e6 # Convert MG to m3 
+    return M3_PER_MG * 1e6 # Convert MG to m3 
 
 
 def mgd_to_m3_per_day(mgd: float) -> float:

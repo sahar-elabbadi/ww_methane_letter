@@ -207,3 +207,4 @@ print(f"Fraction gas capturable: {leak_fraction_capturable}")
 print(f"Required leak rate for a plant that is {plant_size/1e6:.1f}Mm3/day: {required_leak_rate:.3%}")
 
 # %%
+########## Section: Applying to real world plants #######
