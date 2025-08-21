@@ -285,23 +285,24 @@ measurement_data.to_csv(save_path, index=False)
 
 import pandas as pd 
 import pathlib
-from a_my_utilities import load_chp_facilities, load_ad_facilities, M3_PER_MG
+from a_my_utilities import load_all_facilities, load_chp_facilities, load_ad_facilities, M3_PER_MG
 
 national_wrrf_data = pd.read_excel(pathlib.Path('01_raw_data', 'ElAbbadi2025_supplementary_database_C.xlsx'))
 
-#load wastewater treatment plant (WWTP) data 
-data_path = pathlib.Path("01_raw_data", "ElAbbadi2025_supplementary_database_C.xlsx")
-wwtp_data = pd.read_excel(data_path)
-
-#load combined heat and power (CHP) and anaerobic digester (AD) facilities data
-chp_data = load_chp_facilities()
-ad_data = load_ad_facilities()
+# Load all data
+wwtp_data = load_all_facilities() # all WWTPs
+chp_data = load_chp_facilities() # WWTPs with CHP 
+ad_data = load_ad_facilities() # WWTPs with AD 
 
 #convert flow data from MGD to Mm3/day
+wwtp_data['flow_m3_per_day'] = wwtp_data['flow_mgd'] * M3_PER_MG * 1e6
 chp_data['flow_m3_per_day'] = chp_data['flow_mgd'] * M3_PER_MG * 1e6
 ad_data['flow_m3_per_day'] = ad_data['flow_mgd'] * M3_PER_MG * 1e6
 
 # Save files
+wwtp_save_path = pathlib.Path("02_clean_data", "wwtp_data.csv")
+wwtp_data.to_csv(wwtp_save_path, index=False)
+
 chp_save_path = pathlib.Path("02_clean_data", "chp_data.csv")
 chp_data.to_csv(chp_save_path, index=False)
 

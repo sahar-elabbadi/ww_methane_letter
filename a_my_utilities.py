@@ -100,6 +100,10 @@ def load_and_clean_facility_data(filepath: str) -> pd.DataFrame:
 
     return df
 
+def load_all_facilities(): 
+    # Load the CSV using your custom loader
+    return load_and_clean_facility_data(pathlib.PurePath('01_raw_data','ElAbbadi2025_supplementary_database_C.xlsx'))
+
 
 def load_chp_facilities():
     # Load the CSV using your custom loader

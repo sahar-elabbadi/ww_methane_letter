@@ -37,6 +37,12 @@ measurement_data_ad = measurement_data_ad[
     (measurement_data_ad['biogas_production_used_kgCH4_per_hr'] > 0) &
     (measurement_data_ad['production_normalized_CH4_percent']> 0)]
 
+# Load El Abbadi, Feng et al 2025 data on facilities with CHP 
+chp_data = pd.read_csv(pathlib.Path("02_clean_data", "chp_data.csv"))
+wwtp_data = pd.read_csv(pathlib.Path("02_clean_data", "wwtp_data.csv"))
+
+
+#%% 
 ######### Section: Comparison of measurement-based emissions factors from WRRFs #######
 
 # How many facilities do not report biogas production?
@@ -208,3 +214,18 @@ print(f"Required leak rate for a plant that is {plant_size/1e6:.1f}Mm3/day: {req
 
 # %%
 ########## Section: Applying to real world plants #######
+
+# How many facilities are there with CHP in the United States? 
+count_chp = chp_data.shape[0]
+print(f"Facilities with CHP: {count_chp}")
+
+# How big are these facilities? 
+mean_facility_size_Mm3_per_day = chp_data['flow_m3_per_day'].mean()*1e-6
+print(f"Mean facility size: {mean_facility_size_Mm3_per_day}")
+
+median_facility_size_Mm3_per_day = chp_data['flow_m3_per_day'].median()*1e-6
+print(f"Median facility size: {median_facility_size_Mm3_per_day}")
+
+std_dev_facility_size_Mm3_per_day = chp_data['flow_m3_per_day'].std()*1e-6
+print(f"Stdev facility size: {std_dev_facility_size_Mm3_per_day}")
+
