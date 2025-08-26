@@ -5,13 +5,14 @@ from functools import lru_cache
 from scipy import stats
 import pathlib
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import seaborn as sns
 from a_my_utilities import set_chini_dataset, get_chini_stats, chini_confidence_intervals, get_chini_xy
 
 from a_my_utilities import get_chini_xy
 
 
-# --- 1) Load & register the dataset ONCE ---
+# --- 1) Load Chini dataset ---
 chini_data = pd.read_csv(pathlib.Path("02_clean_data", "chini_cleaned.csv"))
 set_chini_dataset(
     chini_data,
@@ -20,14 +21,15 @@ set_chini_dataset(
     drop_negative=True,
 )
 
-# --- 2) Plot using only utility functions ---
+# --- 2) Function for plotting  ---
 def plot_chini_regression_with_intervals(alpha=0.05, n_points=200, save_path=None):
-    # pull cached stats for annotation
+    
+    # Chini stats for annotation 
     stats_cached = get_chini_stats()
     slope = stats_cached["slope"]
     r2_origin = stats_cached["r2_origin"]
 
-    # pull the exact cleaned points used in the fit
+    # Load chini data 
     x, y = get_chini_xy()
     n = len(x)
 
@@ -42,37 +44,84 @@ def plot_chini_regression_with_intervals(alpha=0.05, n_points=200, save_path=Non
 
     eq_text = (
         f"$\\hat{{y}} = {slope:.5f}\\,x$  "
-        f"(R$^2_\\mathrm{{origin}}$ = {r2_origin:.3f}, n={n})"
+        f"[R$^2$ = {r2_origin:.3f}, n={n}]"
     )
 
     # --- plotting ---
-    plt.figure(figsize=(8, 6))
-    plt.scatter(x, y, color="black", alpha=0.7, label="Observed data")
-    plt.plot(x_grid, ci["estimate"], linewidth=2, label=f"Regression: {eq_text}")
+    fig, ax = plt.subplots(figsize=(9, 6))
 
     # mean-response CI band
-    plt.fill_between(
+    ax.fill_between(
         x_grid, ci_lower, ci["upper_ci"], alpha=0.30,
-        label=f"{int((1-alpha)*100)}% confidence band (mean)"
+        label=f"{int((1-alpha)*100)}% confidence interval (mean)", 
+        color="#60C1CF", 
     )
 
     # prediction band (mean + residual scatter)
-    plt.fill_between(
+    ax.fill_between(
         x_grid, pi_lower, ci["upper_pi"], alpha=0.20,
-        label=f"{int((1-alpha)*100)}% prediction band"
+        label=f"{int((1-alpha)*100)}% prediction interval", 
+        color="#79BF82"
     )
 
-    plt.xlabel("Flow (m³/day)")
-    plt.ylabel("Biogas production (kg CH₄/h)")
-    plt.title("Chini regression with confidence & prediction intervals")
-    plt.legend()
-    plt.tight_layout()
+    # Equation of best fit 
+    ax.plot(x_grid, ci["estimate"], linewidth=4, label=f"{eq_text}")
+
+    # Chini data points - fill (semi-transparent)
+    ax.scatter(
+        x, y,
+        s=50,
+        facecolors="black",
+        edgecolors="none",
+        alpha=0.4
+    )
+
+    # Chini data points - outline (solid, on top)
+    ax.scatter(
+        x, y,
+        s=50,
+        facecolors="none",
+        edgecolors="black",
+        linewidths=1.2
+    )
+
+
+    # labels and title
+    ax.set_xlabel("Flow (m³/day)", fontsize=16)
+    ax.set_ylabel("Biogas production (kg CH₄/h)", fontsize=16)
+    # ax.set_title("Chini regression with confidence & prediction intervals", fontsize=16)
+
+    # format tick labels
+    ax.tick_params(axis="both", labelsize=15, pad=8)  # increase tick font size
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x:,.0f}"))
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f"{y:,.0f}"))
+
+    # Tick marks orientation and length 
+    ax.tick_params(axis="both", which="both", direction="in", length=6, width=1)
+
+    # Axis length of formatting 
+    # ax.set_xlim(left=0)
+    ax.set_ylim(bottom=0)
+    ax.set_xlim(0, x_grid[-1])
+
+    # Remove top and right axes: 
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # increase thickness of bottom & left spines
+    ax.spines["bottom"].set_linewidth(2)
+    ax.spines["left"].set_linewidth(2)
+
+
+    ax.legend(fontsize=13, frameon=False)
+
+    fig.tight_layout()
 
     if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        fig.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.show()
 
-# example call
+# Make plot
 plot_chini_regression_with_intervals(alpha=0.05, n_points=200)
 #%%
 
