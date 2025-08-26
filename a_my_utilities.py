@@ -16,8 +16,15 @@ BIOGAS_FRACTION_CH4 = 0.65  # Assume 65% CH4 in biogas. Source: Metcalf & Eddy, 
 METHANE_SCF_PER_THERM = 100
 METHANE_MMBTU_PER_THERM = 0.1
 METHANE_KG_PER_SCF = 0.019176  # kg of methane per scf
-METHANE_MJ_PER_KG = 50.4  # MJ per kg of methane 
 M3_PER_MG = 0.003785411784
+
+
+# Methane lower heating value - when water is not condensed 
+kJ_per_mol = 802.3   # kJ/mol, reported in Harrison et al., 2010
+MW_methane = 16.04    # g/mol = 0.01604 kg/mol
+
+# Convert kJ/mol to MJ/kg
+METHANE_MJ_PER_KG = (kJ_per_mol / 1000) / (MW_methane / 1000) # Result: 50 MJ / kg
 
 ####### Data Loading ########################################
 
@@ -199,7 +206,7 @@ def mgd_to_m3_per_day(mgd: float) -> float:
     - float
         Flow in cubic meters per day.
     """
-    return mgd * 1e6 * m3_per_gal
+    return mgd * 1e6 * M3_PER_MG
 
 
 def g_per_s_to_kg_per_hour(g_per_s):
