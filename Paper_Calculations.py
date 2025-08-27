@@ -7,8 +7,10 @@ import seaborn as sns
 import pathlib
 from a_my_utilities import set_chini_dataset, load_ch4_emissions_data, calc_biogas_production_rate, load_ch4_emissions_with_ad_only, calculate_production_normalized_ch4, calc_annual_revenue
 from a_my_utilities import solve_leak_rate_for_value, get_chini_slope, METHANE_MJ_PER_KG, get_chini_r2
-
+from b_data_cleaning import eia_industrial_tariffs_2023
 import matplotlib.ticker as mtick
+import matplotlib.ticker as ticker
+
 
 ###### LOAD DATA ######
 
@@ -166,6 +168,29 @@ print(f"Minimum production normalized leak rate: {max_leak_rate*100:.2f}%")
 
 # %%
 
+# Assign electricity value to chp_data based on EIA industrial tariffs 
+chp_data["electricity_cost"] = chp_data["state"].map(eia_industrial_tariffs_2023)
+
+# Print results
+print(f"Electricity price data for facilities with CHP:")
+print(chp_data["electricity_cost"].describe(percentiles=[0.25, 0.5, 0.75]))
+
+# Histogram
+plt.hist(chp_data["electricity_cost"], bins=20, edgecolor="black")
+plt.xlabel("Electricity Cost")
+plt.ylabel("Frequency")
+plt.title("Distribution of Electricity Cost")
+plt.show()
+
+#%%
+# Histogram
+plt.hist(chp_data["flow_m3_per_day"], bins=20, edgecolor="black")
+plt.xlabel("Flow (m3/day)")
+plt.ylabel("Frequency")
+plt.title("Distribution of Facility Size")
+plt.show()
+#%%
+
 ########## Section: Economic opportunities from leak repairs #######
 
 measurement_data_has_biogas = measurement_data_ad[measurement_data_ad['reported_biogas_production']=='yes']
@@ -186,7 +211,7 @@ target_annual = 100_000  # USD/year
 plant_size = 500_000  # m³/day
 leak_fraction_capturable = 0.8
 engine_efficiency = 0.35
-electricity_price = 0.08  # USD/kWh
+electricity_price = 0.08  # USD/kWh #TODO repeat this 
 
 required_leak_rate = solve_leak_rate_for_value(
     target_annual, 
@@ -250,14 +275,15 @@ total_national_flow = wwtp_data['flow_m3_per_day'].sum()
 # Helper to compute metrics for a scenario
 def scenario_metrics(leak_rate, capturable):
     # Compute annual revenue for each CHP facility under this scenario
-    annual_rev = chp_data['flow_m3_per_day'].apply(
-        lambda x: calc_annual_revenue(
-            plant_size=x,
+    annual_rev = chp_data.apply(
+        lambda r: calc_annual_revenue(
+            plant_size=r['flow_m3_per_day'],
             leak_rate=leak_rate,
             leak_fraction_capturable=capturable,
             engine_efficiency=0.45,
-            electricity_price_per_kWh=0.08
-        )
+            electricity_price_per_kWh=r['electricity_cost']
+        ),
+        axis=1
     )
     # Mask of facilities above the threshold
     mask = annual_rev > threshold
@@ -310,14 +336,15 @@ rows_flow = []
 for lr in leak_rates:
     for cap in capturable_fracs:
         # Recompute annual revenue for this scenario
-        annual_rev = chp_data['flow_m3_per_day'].apply(
-            lambda x: calc_annual_revenue(
-                plant_size=x,
+        annual_rev = chp_data.apply(
+            lambda r: calc_annual_revenue(
+                plant_size=r['flow_m3_per_day'],
                 leak_rate=lr,
                 leak_fraction_capturable=cap,
                 engine_efficiency=0.45,
-                electricity_price_per_kWh=0.08
-            )
+                electricity_price_per_kWh=r['electricity_cost']
+            ), 
+            axis=1
         )
         mask = annual_rev > threshold
         selected = chp_data.loc[mask, 'flow_m3_per_day']
@@ -358,3 +385,38 @@ for _, r in df_flow.iterrows():
     )
 
 
+
+#%% Annualized cost of OGI camera 
+
+def annualized_cost(capital_cost, lifetime_years, discount_rate):
+    """
+    Calculate annualized cost from a capital investment.
+
+    Parameters
+    ----------
+    capital_cost : float
+        Initial capital investment ($)
+    lifetime_years : int
+        Project lifetime in years
+    discount_rate : float
+        Annual discount/interest rate (as a decimal, e.g. 0.07 for 7%)
+
+    Returns
+    -------
+    float
+        Annualized cost ($/year)
+    """
+    if discount_rate == 0:  # avoid divide by zero
+        return capital_cost / lifetime_years
+
+    i = discount_rate
+    n = lifetime_years
+    crf = (i * (1 + i) ** n) / ((1 + i) ** n - 1)
+    return capital_cost * crf
+
+capital_cost = 200_000
+lifetime_years = 10 
+discount_rate = 0.07
+ogi_annualized_cost = annualized_cost(capital_cost, lifetime_years, discount_rate)
+print(f"Annualized OGI camera costs with lifetimes of {lifetime_years}, discount rate of {discount_rate*100}%, and capital cost of {capital_cost}\n")
+print(f"${ogi_annualized_cost:,.2f}")

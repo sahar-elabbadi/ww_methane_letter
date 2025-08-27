@@ -20,13 +20,19 @@ from a_my_utilities import (
 )
 
 # formatting tick labels 
-def label_formatter(x):
+def label_formatter(x, pos=None):
     if abs(x) >= 1e6:
-        return f"${x/1e6:.1f}M"
+        return f"{x/1e6:.1f}M"
+    elif abs(x) >=1e5: 
+        return f"{x/1e3:.0f}k"
     elif abs(x) >= 1e3:
-        return f"${x/1e3:.1f}k"
+        return f"{x/1e3:.1f}k"
+    elif abs(x) >= 100: 
+        return f"{x:.0f}"
+    elif x == 0: 
+        return f"{x:.0f}"
     else:
-        return f"${x:.0f}"
+        return f"{x:.2f}"
     
 # =========================
 # Data prep (LEFT panel)
@@ -93,6 +99,7 @@ gs_right = gs[:, 1].subgridspec(2, 1, height_ratios=[1, 3], hspace=0.15)
 ax_top = fig.add_subplot(gs_right[0, 0])
 ax_bot = fig.add_subplot(gs_right[1, 0])
 ax2 = ax_bot.twinx()  # methane on secondary y-axis
+
 
 # =========================
 # LEFT: Chini regression with intervals
@@ -216,6 +223,11 @@ for spine in ax2.spines.values():
 # Combined legend (no box)
 ax_bot.legend(handles=[ln1, ln2], loc="upper right", frameon=False, fontsize=14)
 
+
+# Axes labels formatting 
+
+for ax in [ax_left, ax_top, ax_bot, ax2]:
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(label_formatter))
 # =========================
 # Layout & save/show
 # =========================
