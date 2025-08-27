@@ -16,7 +16,7 @@ BIOGAS_FRACTION_CH4 = 0.65  # Assume 65% CH4 in biogas. Source: Metcalf & Eddy, 
 METHANE_SCF_PER_THERM = 100
 METHANE_MMBTU_PER_THERM = 0.1
 METHANE_KG_PER_SCF = 0.019176  # kg of methane per scf
-M3_PER_MG = 0.003785411784
+M3_PER_GAL = 0.003785411784
 
 
 # Methane lower heating value - when water is not condensed 
@@ -191,7 +191,7 @@ def load_ch4_emissions_with_ad_only():
 # mj_per_kg_ch4 = 50.4 # energy content of methane
 
 def m3_per_mg(): 
-    return M3_PER_MG * 1e6 # Convert MG to m3 
+    return M3_PER_GAL * 1e6 # Convert MG to m3 
 
 
 def mgd_to_m3_per_day(mgd: float) -> float:
@@ -206,7 +206,7 @@ def mgd_to_m3_per_day(mgd: float) -> float:
     - float
         Flow in cubic meters per day.
     """
-    return mgd * 1e6 * M3_PER_MG
+    return mgd * 1e6 * M3_PER_GAL
 
 
 def g_per_s_to_kg_per_hour(g_per_s):
@@ -659,3 +659,30 @@ def solve_leak_rate_for_value(target_value_usd_per_year, plant_size, leak_fracti
     leak_rate = target_value_usd_per_hour / (biogas_prod_kg_hr * conversion_factor)
 
     return leak_rate
+
+
+def annualized_cost(capital_cost, lifetime_years, discount_rate):
+    """
+    Calculate annualized cost from a capital investment.
+
+    Parameters
+    ----------
+    capital_cost : float
+        Initial capital investment ($)
+    lifetime_years : int
+        Project lifetime in years
+    discount_rate : float
+        Annual discount/interest rate (as a decimal, e.g. 0.07 for 7%)
+
+    Returns
+    -------
+    float
+        Annualized cost ($/year)
+    """
+    if discount_rate == 0:  # avoid divide by zero
+        return capital_cost / lifetime_years
+
+    i = discount_rate
+    n = lifetime_years
+    crf = (i * (1 + i) ** n) / ((1 + i) ** n - 1)
+    return capital_cost * crf

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pathlib
 from a_my_utilities import set_chini_dataset, load_ch4_emissions_data, calc_biogas_production_rate, load_ch4_emissions_with_ad_only, calculate_production_normalized_ch4, calc_annual_revenue
-from a_my_utilities import solve_leak_rate_for_value, get_chini_slope, METHANE_MJ_PER_KG, get_chini_r2
+from a_my_utilities import solve_leak_rate_for_value, get_chini_slope, METHANE_MJ_PER_KG, get_chini_r2, annualized_cost
 from b_data_cleaning import eia_industrial_tariffs_2023
 import matplotlib.ticker as mtick
 import matplotlib.ticker as ticker
@@ -388,31 +388,31 @@ for _, r in df_flow.iterrows():
 
 #%% Annualized cost of OGI camera 
 
-def annualized_cost(capital_cost, lifetime_years, discount_rate):
-    """
-    Calculate annualized cost from a capital investment.
+# def annualized_cost(capital_cost, lifetime_years, discount_rate):
+#     """
+#     Calculate annualized cost from a capital investment.
 
-    Parameters
-    ----------
-    capital_cost : float
-        Initial capital investment ($)
-    lifetime_years : int
-        Project lifetime in years
-    discount_rate : float
-        Annual discount/interest rate (as a decimal, e.g. 0.07 for 7%)
+#     Parameters
+#     ----------
+#     capital_cost : float
+#         Initial capital investment ($)
+#     lifetime_years : int
+#         Project lifetime in years
+#     discount_rate : float
+#         Annual discount/interest rate (as a decimal, e.g. 0.07 for 7%)
 
-    Returns
-    -------
-    float
-        Annualized cost ($/year)
-    """
-    if discount_rate == 0:  # avoid divide by zero
-        return capital_cost / lifetime_years
+#     Returns
+#     -------
+#     float
+#         Annualized cost ($/year)
+#     """
+#     if discount_rate == 0:  # avoid divide by zero
+#         return capital_cost / lifetime_years
 
-    i = discount_rate
-    n = lifetime_years
-    crf = (i * (1 + i) ** n) / ((1 + i) ** n - 1)
-    return capital_cost * crf
+#     i = discount_rate
+#     n = lifetime_years
+#     crf = (i * (1 + i) ** n) / ((1 + i) ** n - 1)
+#     return capital_cost * crf
 
 capital_cost = 200_000
 lifetime_years = 10 
