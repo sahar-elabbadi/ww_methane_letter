@@ -28,6 +28,86 @@ METHANE_MJ_PER_KG = (kJ_per_mol / 1000) / (MW_methane / 1000) # Result: 50 MJ / 
 
 ####### Data Loading ########################################
 
+######## EIA DATA #######
+def load_eia_data(sector: str, year: int):
+    """
+    Loads EIA annual average electricity price data for a specific sector and filters by year.
+
+    Parameters:
+    sector (str): One of ["RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL", "TRANSPORTATION", "TOTAL"]
+    year (int): A year between 2010 and 2023.
+
+    Returns:
+    pd.DataFrame: The cleaned DataFrame for the specified sector and year.
+    """
+    # Define file path
+    file_path = pathlib.PurePath('01_raw_data', 'EIA_annual_retail_price.xlsx')
+    sheet_name = "Total Electric Industry"
+
+    # Read the sheet into a dataframe
+    df = pd.read_excel(file_path, sheet_name=sheet_name, header=[0, 1])
+
+    # Define sector list
+    sectors = ["RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL", "TRANSPORTATION", "TOTAL"]
+
+    # Ensure the requested sector is valid
+    if sector not in sectors:
+        raise ValueError(f"Invalid sector. Choose from {sectors}")
+
+    # Ensure the year is within the valid range
+    if not (2010 <= year <= 2023):
+        raise ValueError("Year must be between 2010 and 2023.")
+
+    # Extract the year and state columns
+    year_state_cols = df.iloc[:, :2]
+    year_state_cols.columns = ["Year", "State"]
+
+    # Check if sector exists in DataFrame
+    if sector not in df.columns.get_level_values(0):
+        raise ValueError(f"Sector '{sector}' not found in the data!")
+
+    # Extract sector-specific data
+    sector_df = pd.concat([year_state_cols, df.loc[:, sector]], axis=1)
+
+    # Add a "Sector" column
+    sector_df.insert(1, "Sector", sector)
+
+    # Drop the first row (metadata)
+    sector_df = sector_df.iloc[1:].reset_index(drop=True)
+
+    # Rename columns safely
+    rename_map = {
+        "Revenues": "Revenues (thousand USD)",
+        "Sales": "Sales (MWh)",
+        "Price": "Price (Cents/kWh)"
+    }
+
+    # Rename only if the column exists
+    sector_df = sector_df.rename(columns={col: rename_map[col] for col in rename_map if col in sector_df.columns})
+
+    # Convert "Year" column to integers and filter by the specified year
+    sector_df["Year"] = sector_df["Year"].astype(int)
+    sector_df = sector_df[sector_df["Year"] == year]
+
+    # Drop the US average row (keep only actual states/territories)
+    sector_df = sector_df[sector_df["State"] != "US"]
+
+    return sector_df
+
+# Convert DataFrame column to dictionary for use in other scripts
+
+# Load EIA data and process 
+eia_industrial_tariffs_2023_df = (
+    load_eia_data(sector='INDUSTRIAL', year=2023)
+    .set_index('State')  # Ensure "State" is the index
+    [['Price (Cents/kWh)']]  # Double brackets keep it as a DataFrame
+    .div(100)  # Convert from cents to dollars
+)
+
+eia_industrial_tariffs_2023 = eia_industrial_tariffs_2023_df['Price (Cents/kWh)'].to_dict() 
+
+####### FACILITY DATA FROM EL ABBADI, FENG ET AL 2025 #########
+
 def load_and_clean_facility_data(filepath: str) -> pd.DataFrame:
     """
     Load and clean facility-level emissions data from an Excel file.
@@ -105,38 +185,40 @@ def load_and_clean_facility_data(filepath: str) -> pd.DataFrame:
     # Clean treatment_train column
     df['treatment_train'] = df['treatment_train'].apply(parse_treatment_train)
 
+    df['has_chp'] = np.where(df['treatment_train'].astype(str).str.contains('e', na=False), 'yes', 'no')
+    df['has_ad']  = np.where(df['treatment_train'].astype(str).str.contains('1', na=False), 'yes', 'no')
+
+    # Calculate flow in m3 / day 
+    df['flow_m3_per_day'] = df['flow_mgd'] * M3_PER_GAL * 1e6
+
+    # Add price of electricity based on EIA state average 
+    df["electricity_cost"] = df["state"].map(eia_industrial_tariffs_2023)
+
+    # Save files
+    wwtp_save_path = pathlib.Path("02_clean_data", "wwtp_data.csv")
+    df.to_csv(wwtp_save_path, index=False)
+
     return df
 
 def load_all_facilities(): 
-    # Load the CSV using your custom loader
-    return load_and_clean_facility_data(pathlib.PurePath('01_raw_data','ElAbbadi2025_supplementary_database_C.xlsx'))
-
+    # Load cleaned data for all facilities
+    data_path = pathlib.Path("02_clean_data", "wwtp_data.csv")
+    all_data = pd.read_csv(data_path)
+    return all_data
 
 def load_chp_facilities():
-    # Load the CSV using your custom loader
-    wwtp_data = load_and_clean_facility_data(pathlib.PurePath('01_raw_data',
-                                                               'ElAbbadi2025_supplementary_database_C.xlsx'))
+    # Load cleaned data for all facilities 
+    wwtp_data = load_all_facilities()
 
-    # Filter for energy recovery facilities and copy the slice
-    energy_recovery = wwtp_data[
-        wwtp_data['treatment_train'].apply(
-            lambda treatments: any('e' in str(t) for t in treatments)
-        )
-    ].copy()
-
+    # Filter based on has_chp, save as copy 
+    energy_recovery = wwtp_data[wwtp_data['has_chp']=='yes'].copy()
     return energy_recovery
 
 def load_ad_facilities():
-    # Load the CSV using your custom loader
-    wwtp_data = load_and_clean_facility_data(pathlib.PurePath('01_raw_data',
-                                                               'ElAbbadi2025_supplementary_database_C.xlsx'))
-
-    # Filter for energy recovery facilities and copy the slice
-    anaerobic_digestion = wwtp_data[
-        wwtp_data['treatment_train'].apply(
-            lambda treatments: any('1' in str(t) for t in treatments)
-        )
-    ].copy()
+        # Load cleaned data for all facilities 
+    wwtp_data = load_all_facilities()
+        # Filter based on has_chp, save as copy 
+    anaerobic_digestion = wwtp_data[wwtp_data['has_ad']=='yes'].copy()
 
     return anaerobic_digestion
 

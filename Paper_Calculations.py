@@ -7,11 +7,11 @@ import seaborn as sns
 import pathlib
 from a_my_utilities import set_chini_dataset, load_ch4_emissions_data, calc_biogas_production_rate, load_ch4_emissions_with_ad_only, calculate_production_normalized_ch4, calc_annual_revenue
 from a_my_utilities import solve_leak_rate_for_value, get_chini_slope, METHANE_MJ_PER_KG, get_chini_r2, annualized_cost
-from b_data_cleaning import eia_industrial_tariffs_2023
 import matplotlib.ticker as mtick
 import matplotlib.ticker as ticker
 
 
+#%%
 ###### LOAD DATA ######
 
 # Load Chini dataset and cache linear regression 
@@ -169,7 +169,7 @@ print(f"Minimum production normalized leak rate: {max_leak_rate*100:.2f}%")
 # %%
 
 # Assign electricity value to chp_data based on EIA industrial tariffs 
-chp_data["electricity_cost"] = chp_data["state"].map(eia_industrial_tariffs_2023)
+# chp_data["electricity_cost"] = chp_data["state"].map(eia_industrial_tariffs_2023)
 
 # Print results
 print(f"Electricity price data for facilities with CHP:")
@@ -189,7 +189,7 @@ plt.xlabel("Flow (m3/day)")
 plt.ylabel("Frequency")
 plt.title("Distribution of Facility Size")
 plt.show()
-#%%
+
 
 ########## Section: Economic opportunities from leak repairs #######
 
@@ -203,7 +203,7 @@ mean_leak_rate = measurement_data_has_biogas['production_normalized_CH4_percent'
 median_leak_rate = measurement_data_has_biogas['production_normalized_CH4_percent'].median()
 std_leak_rate = measurement_data_has_biogas['production_normalized_CH4_percent'].std()
 print(f'Median leak rate: {median_leak_rate:.2%}, Standard deviation: {std_leak_rate:.2%}')
-      # %%
+
 # What leak fraction is needed to offset OGI costs for a "large" facility of 0.5 Mm3/day? 
 
 
@@ -259,6 +259,7 @@ print(f"Stdev facility size: {std_dev_facility_size_Mm3_per_day}")
 ## CONSERVATIVE CONDITIONS 
 chp_data['annual_revenue_conservative'] = chp_data['flow_m3_per_day'].apply(lambda x: calc_annual_revenue(plant_size=x, leak_rate=0.05, leak_fraction_capturable=0.5, engine_efficiency=0.45, electricity_price_per_kWh=0.08))
 
+#%%
 ############ MAKE TABLE 1 ###############
 
 
@@ -375,44 +376,9 @@ formatters_flow = {
 print("\n=== Mean and Median Flow of Facilities with Revenue > $100,000 ===")
 print(df_flow.to_string(index=False, formatters=formatters_flow))
 
-# Optional: line-by-line summaries (good for pasting into text)
-print("\n--- Scenario flow summaries ---")
-for _, r in df_flow.iterrows():
-    print(
-        f"Leak rate {r['Leak rate']:.0%}, Capturable {r['Capturable fraction']:.0%}: "
-        f"Mean flow = {r['Mean flow (Mm³/day)']:.2f} Mm³/day; "
-        f"Median flow = {r['Median flow (Mm³/day)']:.2f} Mm³/day"
-    )
-
 
 
 #%% Annualized cost of OGI camera 
-
-# def annualized_cost(capital_cost, lifetime_years, discount_rate):
-#     """
-#     Calculate annualized cost from a capital investment.
-
-#     Parameters
-#     ----------
-#     capital_cost : float
-#         Initial capital investment ($)
-#     lifetime_years : int
-#         Project lifetime in years
-#     discount_rate : float
-#         Annual discount/interest rate (as a decimal, e.g. 0.07 for 7%)
-
-#     Returns
-#     -------
-#     float
-#         Annualized cost ($/year)
-#     """
-#     if discount_rate == 0:  # avoid divide by zero
-#         return capital_cost / lifetime_years
-
-#     i = discount_rate
-#     n = lifetime_years
-#     crf = (i * (1 + i) ** n) / ((1 + i) ** n - 1)
-#     return capital_cost * crf
 
 capital_cost = 200_000
 lifetime_years = 10 

@@ -285,19 +285,19 @@ measurement_data.to_csv(save_path, index=False)
 
 import pandas as pd 
 import pathlib
-from a_my_utilities import load_all_facilities, load_chp_facilities, load_ad_facilities, M3_PER_GAL
+from a_my_utilities import load_all_facilities, load_chp_facilities, load_ad_facilities, M3_PER_GAL, load_and_clean_facility_data
 
-national_wrrf_data = pd.read_excel(pathlib.Path('01_raw_data', 'ElAbbadi2025_supplementary_database_C.xlsx'))
+load_and_clean_facility_data(pathlib.Path('01_raw_data', 'ElAbbadi2025_supplementary_database_C.xlsx'))
 
 # Load all data
 wwtp_data = load_all_facilities() # all WWTPs
 chp_data = load_chp_facilities() # WWTPs with CHP 
 ad_data = load_ad_facilities() # WWTPs with AD 
 
-#convert flow data from MGD to Mm3/day
-wwtp_data['flow_m3_per_day'] = wwtp_data['flow_mgd'] * M3_PER_GAL * 1e6
-chp_data['flow_m3_per_day'] = chp_data['flow_mgd'] * M3_PER_GAL * 1e6
-ad_data['flow_m3_per_day'] = ad_data['flow_mgd'] * M3_PER_GAL * 1e6
+# #convert flow data from MGD to Mm3/day
+# wwtp_data['flow_m3_per_day'] = wwtp_data['flow_mgd'] * M3_PER_GAL * 1e6
+# chp_data['flow_m3_per_day'] = chp_data['flow_mgd'] * M3_PER_GAL * 1e6
+# ad_data['flow_m3_per_day'] = ad_data['flow_mgd'] * M3_PER_GAL * 1e6
 
 # Save files
 wwtp_save_path = pathlib.Path("02_clean_data", "wwtp_data.csv")
@@ -309,86 +309,21 @@ chp_data.to_csv(chp_save_path, index=False)
 ad_save_path = pathlib.Path("02_clean_data", "ad_data.csv")
 ad_data.to_csv(ad_save_path, index=False)
 
-#%% 
-import pathlib
-import pandas as pd 
+#%% MOVED TO UTILITIES 
+# import pathlib
+# import pandas as pd 
+# from a_my_utilities import load_eia_data
 
-def load_eia_data(sector: str, year: int):
-    """
-    Loads EIA annual average electricity price data for a specific sector and filters by year.
+# # Load and process the DataFrame
+# eia_industrial_tariffs_2023_df = (
+#     load_eia_data(sector='INDUSTRIAL', year=2023)
+#     .set_index('State')  # Ensure "State" is the index
+#     [['Price (Cents/kWh)']]  # Double brackets keep it as a DataFrame
+#     .div(100)  # Convert from cents to dollars
+# )
 
-    Parameters:
-    sector (str): One of ["RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL", "TRANSPORTATION", "TOTAL"]
-    year (int): A year between 2010 and 2023.
+# # Save as a CSV file
+# eia_industrial_tariffs_2023_df.to_csv(pathlib.PurePath('02_clean_data', 'eia_industrial_tariffs_2023.csv'))
 
-    Returns:
-    pd.DataFrame: The cleaned DataFrame for the specified sector and year.
-    """
-    # Define file path
-    file_path = pathlib.PurePath('01_raw_data', 'EIA_annual_retail_price.xlsx')
-    sheet_name = "Total Electric Industry"
-
-    # Read the sheet into a dataframe
-    df = pd.read_excel(file_path, sheet_name=sheet_name, header=[0, 1])
-
-    # Define sector list
-    sectors = ["RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL", "TRANSPORTATION", "TOTAL"]
-
-    # Ensure the requested sector is valid
-    if sector not in sectors:
-        raise ValueError(f"Invalid sector. Choose from {sectors}")
-
-    # Ensure the year is within the valid range
-    if not (2010 <= year <= 2023):
-        raise ValueError("Year must be between 2010 and 2023.")
-
-    # Extract the year and state columns
-    year_state_cols = df.iloc[:, :2]
-    year_state_cols.columns = ["Year", "State"]
-
-    # Check if sector exists in DataFrame
-    if sector not in df.columns.get_level_values(0):
-        raise ValueError(f"Sector '{sector}' not found in the data!")
-
-    # Extract sector-specific data
-    sector_df = pd.concat([year_state_cols, df.loc[:, sector]], axis=1)
-
-    # Add a "Sector" column
-    sector_df.insert(1, "Sector", sector)
-
-    # Drop the first row (metadata)
-    sector_df = sector_df.iloc[1:].reset_index(drop=True)
-
-    # Rename columns safely
-    rename_map = {
-        "Revenues": "Revenues (thousand USD)",
-        "Sales": "Sales (MWh)",
-        "Price": "Price (Cents/kWh)"
-    }
-
-    # Rename only if the column exists
-    sector_df = sector_df.rename(columns={col: rename_map[col] for col in rename_map if col in sector_df.columns})
-
-    # Convert "Year" column to integers and filter by the specified year
-    sector_df["Year"] = sector_df["Year"].astype(int)
-    sector_df = sector_df[sector_df["Year"] == year]
-
-    # Drop the US average row (keep only actual states/territories)
-    sector_df = sector_df[sector_df["State"] != "US"]
-
-    return sector_df
-
-
-# Load and process the DataFrame
-eia_industrial_tariffs_2023_df = (
-    load_eia_data(sector='INDUSTRIAL', year=2023)
-    .set_index('State')  # Ensure "State" is the index
-    [['Price (Cents/kWh)']]  # Double brackets keep it as a DataFrame
-    .div(100)  # Convert from cents to dollars
-)
-
-# Save as a CSV file
-eia_industrial_tariffs_2023_df.to_csv(pathlib.PurePath('02_clean_data', 'eia_industrial_tariffs_2023.csv'))
-
-# Convert DataFrame column to dictionary for use in other scripts
-eia_industrial_tariffs_2023 = eia_industrial_tariffs_2023_df['Price (Cents/kWh)'].to_dict() 
+# # # Convert DataFrame column to dictionary for use in other scripts
+# # eia_industrial_tariffs_2023 = eia_industrial_tariffs_2023_df['Price (Cents/kWh)'].to_dict() 

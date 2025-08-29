@@ -294,7 +294,7 @@ def annualized_digester_cost(cost_dict, lifetime_years=30, discount_rate=0.07):
     for scenario, capex in cost_dict.items():
         results[scenario] = annualized_cost(capex, lifetime_years, discount_rate)
     return results
-q = 1_000_000  # m³/day
+q = 100_000  # m³/day
 
 # 1. Run full sizing workflow
 results = size_digester_from_flow(q)
@@ -305,9 +305,50 @@ capex = results['total']['cost_$']  # {'low': ..., 'baseline': ..., 'high': ...}
 # 3. Annualize
 annualized = annualized_digester_cost(capex, lifetime_years=50, discount_rate=0.07)
 
-print(f"Flow rate of facility: {q/1e6:,.0f} Mm3/day")
+print(f"Flow rate of facility: {q/1e6:,.1f} Mm3/day")
 # 4. Print results
 for s in ('low','baseline','high'):
     print(f"{s.capitalize()}:")
     print(f"  Capital cost = ${capex[s]:,.0f}")
     print(f"  Annualized cost = ${annualized[s]:,.0f}/yr")
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Flow range (1 → 1.6 million m³/day, 50 points)
+flows = np.linspace(1, 1_600_000, 50)
+
+# Containers for results
+cost_low, cost_base, cost_high = [], [], []
+
+# Loop over flows
+for q in flows:
+    results = size_digester_from_flow(q)
+    capex = results['total']['cost_$']
+    cost_low.append(capex['low'])
+    cost_base.append(capex['baseline'])
+    cost_high.append(capex['high'])
+
+# Convert to numpy arrays
+cost_low = np.array(cost_low)
+cost_base = np.array(cost_base)
+cost_high = np.array(cost_high)
+
+# --- Compute slopes ($ per (m³/day)) using endpoints ---
+slope_low = (cost_low[-1] - cost_low[0]) / (flows[-1] - flows[0])
+slope_base = (cost_base[-1] - cost_base[0]) / (flows[-1] - flows[0])
+slope_high = (cost_high[-1] - cost_high[0]) / (flows[-1] - flows[0])
+
+# --- Plot ---
+plt.figure(figsize=(10,6))
+plt.plot(flows, cost_low, label=f"Low scenario (slope = {slope_low:,.2f} $/(m³/day))", linestyle="--")
+plt.plot(flows, cost_base, label=f"Baseline scenario (slope = {slope_base:,.2f} $/(m³/day))", linestyle="-")
+plt.plot(flows, cost_high, label=f"High scenario (slope = {slope_high:,.2f} $/(m³/day))", linestyle="-.")
+plt.xlabel("Flow rate (m³/day)")
+plt.ylabel("Capital Cost ($)")
+plt.title("Digester Capital Cost vs Flow Rate")
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()

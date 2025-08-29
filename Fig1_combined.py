@@ -8,6 +8,7 @@ import pandas as pd
 import pathlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import pathlib
 
 from a_my_utilities import (
     set_chini_dataset,
@@ -86,7 +87,7 @@ month_labels = month_starts.strftime("%b").to_list()
 # =========================
 plt.rcParams.update({"mathtext.default": "regular"})  # consistent math text
 
-fig = plt.figure(figsize=(17, 7))
+fig = plt.figure(figsize=(17, 7), constrained_layout=True)
 # 2 columns, 2 rows overall; left takes both rows, right splits into 2 stacked axes
 
 gs = fig.add_gridspec(nrows=2, ncols=2, width_ratios=[1, 1], height_ratios=[1, 1])
@@ -95,7 +96,7 @@ gs = fig.add_gridspec(nrows=2, ncols=2, width_ratios=[1, 1], height_ratios=[1, 1
 ax_left = fig.add_subplot(gs[:, 0])
 
 # Right: subgridspec in col 1 with two rows (top smaller, bottom larger)
-gs_right = gs[:, 1].subgridspec(2, 1, height_ratios=[1, 3], hspace=0.15)
+gs_right = gs[:, 1].subgridspec(2, 1, height_ratios=[1, 4], hspace=0.15)
 ax_top = fig.add_subplot(gs_right[0, 0])
 ax_bot = fig.add_subplot(gs_right[1, 0])
 ax2 = ax_bot.twinx()  # methane on secondary y-axis
@@ -171,12 +172,17 @@ ax_top.scatter(
     s=60, color="tab:purple", alpha=0.85,
     label="Monthly Avg Methane/Flow",
 )
-ax_top.set_ylabel("Flow-normalized\nbiogas production\n(kg CH₄/m³)", fontsize=label_fs, labelpad=6, color="black")
+ax_top.text(
+    0.05, 0.85,   # (x, y) in axes coordinates (0=left, 1=top)
+    "Flow-normalized biogas production (kg CH₄/m³)",
+    transform=ax_top.transAxes,
+    ha="left", va="bottom",
+    fontsize=label_fs, color="black"
+)
 ax_top.set_xlim(1, 366)
-ax_top.set_ylim(0, 0.08)
+ax_top.set_ylim(0, 0.1)
 ax_top.set_xticks(month_start_days)
-ax_top.set_xticklabels(month_labels, fontsize=tick_fs, color="black")
-
+ax_top.set_xticklabels([])
 ax_top.set_yticks([0.00, 0.04, 0.08])
 ax_top.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
 
@@ -184,6 +190,11 @@ ax_top.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
 ax_top.tick_params(axis="both", which="both", direction="in", length=5, labelsize=tick_fs, pad=6)
 for spine in ax_top.spines.values():
     spine.set_linewidth(1.5)
+
+ax_top.spines["top"].set_visible(False)
+ax_top.spines["right"].set_visible(False)
+ax_top.spines["bottom"].set_linewidth(2)
+ax_top.spines["left"].set_linewidth(2)
 
 # =========================
 # RIGHT BOTTOM: Flow (left y) + Methane (right y)
@@ -214,11 +225,18 @@ ax2.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x/1000:.1f}k"
 # Ticks & spines
 for ax in (ax_bot, ax2):
     ax.tick_params(axis="both", which="both", direction="in", length=5, labelsize=tick_fs, pad=6)
+
 for ax in (ax_bot,):
     for spine in ax.spines.values():
-        spine.set_linewidth(1.5)
+        spine.set_linewidth(2)
+
 for spine in ax2.spines.values():
-    spine.set_linewidth(1.5)
+    spine.set_linewidth(2)
+
+ax_bot.spines["top"].set_visible(False)
+ax2.spines["top"].set_visible(False)
+
+
 
 # Combined legend (no box)
 ax_bot.legend(handles=[ln1, ln2], loc="upper right", frameon=False, fontsize=14)
@@ -232,5 +250,7 @@ for ax in [ax_left, ax_top, ax_bot, ax2]:
 # Layout & save/show
 # =========================
 fig.tight_layout()
-# fig.savefig("figure_chini_panel.png", dpi=400, bbox_inches="tight")
+fig.subplots_adjust(top=.9999)  # nudge down slightly to avoid cutoff
+save_path = pathlib.Path("03_figures", "fig1_combined.png")
+fig.savefig(save_path, dpi=400, bbox_inches="tight", pad_inches=0.2)
 plt.show()
