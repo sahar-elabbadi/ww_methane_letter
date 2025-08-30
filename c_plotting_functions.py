@@ -87,7 +87,7 @@ def plot_methane_savings_vary_leak_rate(
             return f"${x:.0f}"
 
     cs = ax.tricontour(Xf, Yf, Zf, levels=levels_line, colors='black', linewidths=2.0)
-    ax.clabel(cs, inline=True, fontsize=10, fmt=label_formatter, rightside_up=True)
+    ax.clabel(cs, inline=True, fontsize=16, fmt=label_formatter, rightside_up=True)
 
     # # Breakeven line
     # ax.tricontour(Xf, Yf, Zf, levels=[0], colors='black', linewidths=3.0, linestyles='solid', zorder=3)
@@ -96,11 +96,11 @@ def plot_methane_savings_vary_leak_rate(
     cost1 = ax.tricontour(Xf, Yf, Zf, levels=[100_000], colors='black', linewidths=3.0, linestyles='dashed', zorder=3)
         # Cost of OGI survey
         #     
-    ax.clabel(cost1, inline=True, fmt={100_000: "OGI survey"}, fontsize=10)
+    ax.clabel(cost1, inline=True, fmt={100_000: "OGI survey"}, fontsize=16)
 
 
     # Axes formatting
-    ax.tick_params(direction='in', length=8, width=1.5, pad=6, labelsize=12)
+    ax.tick_params(direction='in', length=8, width=1.5, pad=6, labelsize=14)
     ax.set_xlabel("Plant Size (m³/day)", fontsize=16)
     ax.set_ylabel("Leak Rate (%)", fontsize=16)
     ax.set_xlim(plant_sizes_m3_per_day_range)
@@ -220,7 +220,7 @@ def plot_methane_savings_vary_capturable(
         levels=levels_line,
         colors='black', linewidths=2.0
     )
-    ax.clabel(contour_lines, inline=True, fontsize=10, fmt=label_formatter, rightside_up=True)
+    ax.clabel(contour_lines, inline=True, fontsize=16, fmt=label_formatter, rightside_up=True)
 
     # Breakeven line
     # ax.tricontour(
@@ -232,17 +232,19 @@ def plot_methane_savings_vary_capturable(
     cost1 = ax.tricontour(X_flat, Y_flat, Z_flat, levels=[100_000], colors='black', 
                   linewidths=3.0, linestyles='dashed', zorder=3)
     
-    ax.clabel(cost1, inline=True, fmt={100_000: "OGI survey"}, fontsize=10)
+    ax.clabel(cost1, inline=True, fmt={100_000: "OGI survey"}, fontsize=16)
 
 
     # Axes formatting
-    ax.tick_params(direction='in', length=8, width=1.5, pad=6, labelsize=12)
+    ax.tick_params(direction='in', length=8, width=1.5, pad=6, labelsize=14)
     ax.set_xlabel("Plant Size (m³/day)", fontsize=16)
     ax.set_ylabel("Fraction of Gas Capturable", fontsize=16)
     ax.set_xlim(plant_sizes_m3_per_day_range)
+    
     xticks = np.arange(0, plant_sizes_m3_per_day_range[1] + 1, 200_000)
     ax.set_xticks(xticks)
     ax.set_xticklabels([f"{val / 1e6:.1f}M" for val in xticks])
+
     ax.set_ylim(capturable_fraction_range)
     ax.set_yticks(np.linspace(capturable_fraction_range[0], capturable_fraction_range[1], 6))
     ax.set_yticklabels([f"{val:.2f}" for val in np.linspace(capturable_fraction_range[0], capturable_fraction_range[1], 6)])

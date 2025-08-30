@@ -104,7 +104,10 @@ eia_industrial_tariffs_2023_df = (
     .div(100)  # Convert from cents to dollars
 )
 
-eia_industrial_tariffs_2023 = eia_industrial_tariffs_2023_df['Price (Cents/kWh)'].to_dict() 
+eia_industrial_tariffs_2023_df = eia_industrial_tariffs_2023_df.rename(columns={'Price (Cents/kWh)': 'Price ($/kWh)'})
+eia_industrial_tariffs_2023_df.to_csv(pathlib.Path("02_clean_data", "eia_industrial_tariffs_2023.csv"))
+
+eia_industrial_tariffs_2023 = eia_industrial_tariffs_2023_df['Price ($/kWh)'].to_dict() # for use elsewhere in script
 
 ####### FACILITY DATA FROM EL ABBADI, FENG ET AL 2025 #########
 

@@ -54,7 +54,7 @@ plot_methane_savings_vary_leak_rate(
 # (Optional) override/clarify title outside the function
 # axes[0, 0].set_title("Capturable fraction: 0.5 — vary leak rate")
 # axes[0,0].set_xticks([])  # Remove x-ticks for cleaner look
-axes[0, 0].text(0.02, 0.02, "Capturable fraction: 0.5", transform=axes[0, 0].transAxes, fontsize=16)
+axes[0, 0].text(0.02, 0.02, "Capturable fraction: 0.5", transform=axes[0, 0].transAxes, fontsize=18)
 
 
 # Panel (0,1): capturable = 0.8
@@ -76,7 +76,7 @@ plot_methane_savings_vary_leak_rate(
 )
 
 # axes[0, 1].set_title("Capturable fraction: 0.8 — vary leak rate")
-axes[0, 1].text(0.02, 0.02, "Capturable fraction: 0.8", transform=axes[0, 1].transAxes, fontsize=16)
+axes[0, 1].text(0.02, 0.02, "Capturable frac.: 0.8", transform=axes[0, 1].transAxes, fontsize=18)
 
 
 # ----------------------------------------
@@ -97,7 +97,7 @@ plot_methane_savings_vary_capturable(
     norm=shared_norm
 )
 # axes[1, 0].set_title("Leak rate: 5% — vary capturable fraction")
-axes[1,0].text(0.02, 0.04, "Leak rate: 5%", transform=axes[1, 0].transAxes, fontsize=16)
+axes[1,0].text(0.02, 0.04, "Leak rate: 5%", transform=axes[1, 0].transAxes, fontsize=18)
 
 
 
@@ -116,7 +116,7 @@ plot_methane_savings_vary_capturable(
     norm=shared_norm
 )
 # axes[1, 1].set_title("Leak rate: 10% — vary capturable fraction")
-axes[1, 1].text(0.02, 0.04, "Leak rate: 15%", transform=axes[1, 1].transAxes, fontsize=16)
+axes[1, 1].text(0.02, 0.04, "Leak rate: 15%", transform=axes[1, 1].transAxes, fontsize=18)
 
 
 plt.tight_layout()
@@ -148,6 +148,14 @@ axes[1,1].set_ylabel(None)  # Remove x-ticks for cleaner look
 
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.5)
 plt.show()
+
+for ax in axes.flat:
+    ax.set_xlabel(ax.get_xlabel(), fontsize=16)  # bump x-axis label font size
+    ax.set_ylabel(ax.get_ylabel(), fontsize=16)  # bump y-axis label font size
+
+for ax in axes.flat:
+    ax.tick_params(axis="both", which="major", labelsize=14, length=6, width=1.5, direction="in", pad=6)
+
 
 # ===========================
 # SAVE FIGURE

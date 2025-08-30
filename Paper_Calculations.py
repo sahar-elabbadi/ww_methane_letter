@@ -182,6 +182,38 @@ plt.ylabel("Frequency")
 plt.title("Distribution of Electricity Cost")
 plt.show()
 
+#%% 
+import matplotlib.pyplot as plt 
+# Plot electricity data histogram 
+industrial_electricity_data = pathlib.Path("02_clean_data", "eia_industrial_tariffs_2023.csv")
+eia2023 = pd.read_csv(industrial_electricity_data)
+
+# Sort the dataframe by price
+eia2023_sorted = eia2023.sort_values(by="Price ($/kWh)").reset_index(drop=True)
+
+# Scatter plot with y-axis starting at 0
+plt.figure(figsize=(12,6))
+plt.scatter(range(len(eia2023_sorted)), eia2023_sorted["Price ($/kWh)"], color="blue", alpha=0.7)
+
+# Keep all state labels
+plt.xticks(range(len(eia2023_sorted)), eia2023_sorted["State"], rotation=90, fontsize=10)
+plt.yticks(fontsize=12)
+
+plt.xlabel("State (sorted by tariff)", fontsize=14)
+plt.ylabel("Price ($/kWh)", fontsize=14)
+plt.title("Industrial Electricity Tariffs by State (2023) - Sorted", fontsize=16)
+
+# Remove grid and set y-axis to start at 0
+plt.grid(False)
+plt.ylim(bottom=0)
+
+plt.tight_layout()
+plt.show()
+
+# Get summary statistics of the tariff data
+summary_stats = eia2023["Price ($/kWh)"].describe()
+summary_stats
+
 #%%
 # Histogram
 plt.hist(chp_data["flow_m3_per_day"], bins=20, edgecolor="black")
@@ -386,3 +418,21 @@ discount_rate = 0.07
 ogi_annualized_cost = annualized_cost(capital_cost, lifetime_years, discount_rate)
 print(f"Annualized OGI camera costs with lifetimes of {lifetime_years}, discount rate of {discount_rate*100}%, and capital cost of {capital_cost}\n")
 print(f"${ogi_annualized_cost:,.2f}")
+
+#%% 
+import pathlib 
+import pandas as pd
+dkk_per_usd_2021 = pd.read_excel(pathlib.PurePath('01_raw_data','fred_danish_kroner_to_usd.xls'))
+print(f"Average DKK per USD in 2021: {dkk_per_usd_2021['DEXDNUS'].mean():.2f}")
+
+repair_costs_dkk_low = 100_000
+repair_costs_dkk_high = 22_500_000
+print(f"Low costs of repairs in 2021: ${repair_costs_dkk_low / dkk_per_usd_2021['DEXDNUS'].mean():,.2f} ")
+print(f"Low costs of repairs in 2021: ${repair_costs_dkk_high / dkk_per_usd_2021['DEXDNUS'].mean():,.2f} ")
+
+# Convert to 2023 dollars: 
+# data saved in 01_raw_data/CPI_2021-2023.xlsx
+cpi_2021 = 270.970
+cpi_2023 = 304.702 
+print(f"Low costs of repairs in 2023: ${repair_costs_dkk_low / dkk_per_usd_2021['DEXDNUS'].mean()*cpi_2023/cpi_2021:,.2f} ")
+print(f"Low costs of repairs in 2023: ${repair_costs_dkk_high / dkk_per_usd_2021['DEXDNUS'].mean()*cpi_2023/cpi_2021:,.2f} ")
