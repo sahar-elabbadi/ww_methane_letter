@@ -140,7 +140,6 @@ print(f"Std Dev normalized emissions for facilities without biogas data: {no_bio
 ########## Discussion of Figure 2b #######
 
 
-
 # Load production normalized biogas 
 measurement_data_ad = calculate_production_normalized_ch4(
     load_data_func=load_ch4_emissions_with_ad_only,
