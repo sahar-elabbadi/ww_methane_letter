@@ -271,7 +271,7 @@ print(f"Required leak rate for a plant that is {plant_size/1e6:.1f}Mm3/day: {req
 # %%
 ########## Section: Applying to real world plants #######
 
-from a_my_utilities import calc_leak_value
+from a_my_utilities import calc_leak_value_CHP
 
 # How many facilities are there with CHP in the United States? 
 count_chp = chp_data.shape[0]
