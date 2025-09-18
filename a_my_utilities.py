@@ -690,7 +690,32 @@ def calculate_production_normalized_ch4(
 
 #### For economic analysis #### 
 
-def calc_leak_power_value(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh):
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class Engine:
+    name: str
+    efficiency: float                 # electricity efficiency (0–1)
+    power_to_heat_ratio: float        # P/H (dimensionless, >0)
+
+    @property
+    def heat_to_power_ratio(self) -> float:
+        return 1.0 / self.power_to_heat_ratio
+    
+
+ENGINES = {
+    "reciprocating_rich_burn": Engine("reciprocating_rich_burn", efficiency=0.291, power_to_heat_ratio=0.62), # Source: US EPA, 2011; Table 5
+    "reciprocating_lean_burn":     Engine("reciprocating_lean_burn",     efficiency=0.326, power_to_heat_ratio=0.86), # Source: US EPA, 2011; Table 5
+    "mircroturbine":     Engine("microbturbine",     efficiency=0.26, power_to_heat_ratio=0.88), # Source: US EPA, 2011; Table 5
+    "fuel_cell":     Engine("fuel_cell",     efficiency=0.423, power_to_heat_ratio=1.26), # Source: US EPA, 2011; Table 5
+
+}
+
+
+
+def calc_leak_power_value(plant_size, leak_rate, leak_fraction_capturable, *, 
+                          engine: Engine, 
+                          electricity_price_per_kWh):
     """
     plant_size: size of the plant in m3/day
     leak_rate: leak rate as a fraction of the biogas production rate
@@ -708,13 +733,15 @@ def calc_leak_power_value(plant_size, leak_rate, leak_fraction_capturable, engin
     # print(f'Methane leakage: {methane_leakage_MJ_per_hr} MJ/hr')
    
     electricity_generation_potential_kWh_per_hour = methane_leakage_MJ_per_hr *\
-          leak_fraction_capturable * (1/mj_per_kWh()) * engine_efficiency  # Convert to kWh per hour and multiply by engine efficiency
+          leak_fraction_capturable * (1/mj_per_kWh()) * engine.efficiency  # Convert to kWh per hour and multiply by engine efficiency
     
     leak_value_usd_per_hour = electricity_generation_potential_kWh_per_hour * electricity_price_per_kWh # Convert to USD per hour
     
     return leak_value_usd_per_hour
 
-def calc_leak_heat_value(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, power_to_heat_ratio, nat_gas_price_per_MJ):
+def calc_leak_heat_value(plant_size, leak_rate, leak_fraction_capturable, *, 
+                        engine: Engine, 
+                        nat_gas_price_per_MJ): 
      """
     plant_size: size of the plant in m3/day
     leak_rate: leak rate as a fraction of the biogas production rate
@@ -733,9 +760,9 @@ def calc_leak_heat_value(plant_size, leak_rate, leak_fraction_capturable, engine
      # print(f'Methane leakage: {methane_leakage_MJ_per_hr} MJ/hr')
      
      electricity_generation_potential_MJ_per_hour = methane_leakage_MJ_per_hr *\
-        leak_fraction_capturable * engine_efficiency  # Energy production in MJ per hour
+        leak_fraction_capturable * engine.efficiency  # Energy production in MJ per hour
      
-     heat_production = electricity_generation_potential_MJ_per_hour * (1/power_to_heat_ratio) # Heat production in MJ per hour
+     heat_production = electricity_generation_potential_MJ_per_hour * (1/engine.power_to_heat_ratio) # Heat production in MJ per hour
 
      leak_value_usd_per_hour = heat_production * nat_gas_price_per_MJ # Convert to USD per hour
 
@@ -743,7 +770,9 @@ def calc_leak_heat_value(plant_size, leak_rate, leak_fraction_capturable, engine
 
 
 
-def calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, power_to_heat_ratio, nat_gas_price_per_MJ):
+def calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, *, 
+                        engine: Engine, 
+                        electricity_price_per_kWh, nat_gas_price_per_MJ):
     """
     plant_size: size of the plant in m3/day
     leak_rate: leak rate as a fraction of the biogas production rate
@@ -751,15 +780,18 @@ def calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine_
 
     """
 
-    leak_electricity_usd = calc_leak_power_value(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh)
-    leak_heat_value = calc_leak_heat_value(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, power_to_heat_ratio, nat_gas_price_per_MJ)
+    leak_electricity_usd = calc_leak_power_value(plant_size, leak_rate, leak_fraction_capturable, engine.efficiency, electricity_price_per_kWh)
+    leak_heat_value = calc_leak_heat_value(plant_size, leak_rate, leak_fraction_capturable, engine.efficiency, engine.power_to_heat_ratio, nat_gas_price_per_MJ)
 
     leak_value_usd_per_hour = leak_electricity_usd + leak_heat_value
     
     return leak_value_usd_per_hour
 
 
-def calc_payback_period(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, power_to_heat_ratio, nat_gas_price_per_MJ, ogi_cost=100000): 
+def calc_payback_period(plant_size, leak_rate, leak_fraction_capturable, *, 
+                        engine: Engine, 
+                        electricity_price_per_kWh, nat_gas_price_per_MJ, 
+                        ogi_cost=100000): 
     """
     Calculate the payback period (days) for a methane leak OGI survey based on the leak value.
     
@@ -769,14 +801,17 @@ def calc_payback_period(plant_size, leak_rate, leak_fraction_capturable, engine_
     leak_fraction_capturable: fraction of the leak that can be captured
     electricity_price_per_kWh: price of electricity in USD per kWh
     """
-    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, power_to_heat_ratio, nat_gas_price_per_MJ)
+    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine.efficiency, electricity_price_per_kWh, engine.power_to_heat_ratio, nat_gas_price_per_MJ)
     
     payback_period = ogi_cost / leak_value * (1/24) # Payback period in days
     
     return payback_period
 
 
-def calc_annual_savings(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, power_to_heat_ratio, nat_gas_price_per_MJ, ogi_cost=100000):
+def calc_annual_savings(plant_size, leak_rate, leak_fraction_capturable, *, 
+                        engine: Engine, 
+                        electricity_price_per_kWh, nat_gas_price_per_MJ, 
+                        ogi_cost=100000):
     """
     Calculate the annual savings from capturing methane leaks.
     
@@ -788,14 +823,16 @@ def calc_annual_savings(plant_size, leak_rate, leak_fraction_capturable, engine_
     ogi_cost: cost of OGI survey in USD
     """
     
-    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, power_to_heat_ratio, nat_gas_price_per_MJ)
+    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine.efficiency, electricity_price_per_kWh, engine.power_to_heat_ratio, nat_gas_price_per_MJ)
     
 
     annual_savings = leak_value * 24 * 365 - ogi_cost  # Annual savings in USD
     
     return annual_savings
 
-def calc_annual_revenue(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, power_to_heat_ratio, nat_gas_price_per_MJ, ogi_cost=100000):
+def calc_annual_revenue(plant_size, leak_rate, leak_fraction_capturable, *, 
+                        engine: Engine, 
+                        electricity_price_per_kWh, nat_gas_price_per_MJ, ogi_cost=100000):
     """
     Calculate the annual savings from capturing methane leaks.
     
@@ -807,7 +844,7 @@ def calc_annual_revenue(plant_size, leak_rate, leak_fraction_capturable, engine_
     ogi_cost: cost of OGI survey in USD
     """
     
-    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, power_to_heat_ratio, nat_gas_price_per_MJ)
+    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine.efficiency, electricity_price_per_kWh, engine.power_to_heat_ratio, nat_gas_price_per_MJ)
     
 
     annual_revenue = leak_value * 24 * 365  # Annual revenue in USD
@@ -816,7 +853,9 @@ def calc_annual_revenue(plant_size, leak_rate, leak_fraction_capturable, engine_
 
 
 
-def solve_leak_rate_for_value(target_value_usd_per_year, plant_size, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, heat_to_power_ratio, nat_gas_price_per_MJ):
+def solve_leak_rate_for_value(target_value_usd_per_year, plant_size, leak_fraction_capturable, 
+                              engine: Engine, 
+                              electricity_price_per_kWh, nat_gas_price_per_MJ):
     """
     Solve for the methane leak rate (fraction of biogas lost) required 
     to reach a target monetary value of leaks.
@@ -834,13 +873,13 @@ def solve_leak_rate_for_value(target_value_usd_per_year, plant_size, leak_fracti
         mj_per_kg_CH4()
         * leak_fraction_capturable
         * (1 / mj_per_kWh())
-        * engine_efficiency
+        * engine.efficiency
         * electricity_price_per_kWh 
         + # Heat component
         (mj_per_kg_CH4()
         * leak_fraction_capturable
-        * engine_efficiency
-        * (1/heat_to_power_ratio)
+        * engine.efficiency
+        * (1/engine.power_to_heat_ratio)
         * nat_gas_price_per_MJ)
     )
 
