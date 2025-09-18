@@ -182,6 +182,7 @@ plt.title("Distribution of Electricity Cost")
 plt.show()
 
 #%% 
+### Plot industrial electricity tariffs by state
 import matplotlib.pyplot as plt 
 # Plot electricity data histogram 
 industrial_electricity_data = pathlib.Path("02_clean_data", "eia_industrial_tariffs_2023.csv")
@@ -212,6 +213,39 @@ plt.show()
 # Get summary statistics of the tariff data
 summary_stats = eia2023["Price ($/kWh)"].describe()
 summary_stats
+
+#%% 
+### Plot industrial electricity tariffs by state
+import matplotlib.pyplot as plt 
+# Plot natural gas data histogram 
+industrial_natural_gas_data = pathlib.Path("02_clean_data", "eia_industrial_tariffs_natural_gas_2023.csv")
+eia2023_ng = pd.read_csv(industrial_natural_gas_data)
+
+# Sort the dataframe by price
+eia2023_ng_sorted = eia2023_ng.sort_values(by="Price ($/MJ)").reset_index(drop=True)
+
+# Scatter plot with y-axis starting at 0
+plt.figure(figsize=(12,6))
+plt.scatter(range(len(eia2023_ng_sorted)), eia2023_ng_sorted["Price ($/MJ)"], color="blue", alpha=0.7)
+
+# Keep all state labels
+plt.xticks(range(len(eia2023_ng_sorted)), eia2023_ng_sorted["State"], rotation=90, fontsize=10)
+plt.yticks(fontsize=12)
+
+plt.xlabel("State (sorted by tariff)", fontsize=14)
+plt.ylabel("Price ($/MJ)", fontsize=14)
+plt.title("Industrial Natural Gas Tariffs by State (2023) - Sorted", fontsize=16)
+
+# Remove grid and set y-axis to start at 0
+plt.grid(False)
+plt.ylim(bottom=0)
+
+plt.tight_layout()
+plt.show()
+
+# Get summary statistics of the tariff data
+summary_stats_ng = eia2023_ng["Price ($/MJ)"].describe()
+summary_stats_ng
 
 #%%
 # Histogram
