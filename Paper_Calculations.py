@@ -197,8 +197,23 @@ print(chp_data["electricity_cost"].describe(percentiles=[0.25, 0.5, 0.75]))
 plt.hist(chp_data["electricity_cost"], bins=20, edgecolor="black")
 plt.xlabel("Electricity Cost")
 plt.ylabel("Frequency")
-plt.title("Distribution of Electricity Cost")
+plt.title("Distribution of Electricity Costs for Facilities with CHP")
 plt.show()
+# Note: median electricity price calculated is $0.09 / kWh
+
+
+# Print results
+print(f"Natural gas price data for facilities with CHP:")
+print(chp_data["natural_gas_cost"].describe(percentiles=[0.25, 0.5, 0.75]))
+
+# Histogram
+plt.hist(chp_data["natural_gas_cost"], bins=20, edgecolor="black")
+plt.xlabel("Natural Gas Cost")
+plt.ylabel("Frequency")
+plt.title("Distribution of Natural Gas Costs for Facilities with CHP")
+plt.show()
+
+# Note: median natural gas price calculated is $0.0079 / MJ
 
 #%% 
 ### Plot industrial electricity tariffs by state
@@ -298,8 +313,8 @@ target_annual = 100_000  # USD/year
 plant_size = 500_000  # m³/day
 leak_fraction_capturable = 0.8
 engine = ENGINES['reciprocating_lean_burn'] # SET ENGINE TYPE HERE 
-electricity_price = 0.08  # USD/kWh 
-nat_gas_price = 0.006  # USD/MJ
+electricity_price = 0.09  # USD/kWh 
+nat_gas_price = 0.008  # USD/MJ
 
 required_leak_rate = solve_leak_rate_for_value(
     target_annual, 
@@ -373,7 +388,8 @@ def scenario_metrics(leak_rate, capturable):
             leak_rate=leak_rate,
             leak_fraction_capturable=capturable,
             engine=engine, 
-            electricity_price_per_kWh=r['electricity_cost']
+            electricity_price_per_kWh=r['electricity_cost'], 
+            nat_gas_price_per_MJ=r['natural_gas_cost']
         ),
         axis=1
     )
@@ -433,8 +449,9 @@ for lr in leak_rates:
                 plant_size=r['flow_m3_per_day'],
                 leak_rate=lr,
                 leak_fraction_capturable=cap,
-                engine_efficiency=0.45,
-                electricity_price_per_kWh=r['electricity_cost']
+                engine=engine, 
+                electricity_price_per_kWh=r['electricity_cost'], 
+                nat_gas_price_per_MJ=r['natural_gas_cost']
             ), 
             axis=1
         )
@@ -495,3 +512,4 @@ cpi_2021 = 270.970
 cpi_2023 = 304.702 
 print(f"Low costs of repairs in 2023: ${repair_costs_dkk_low / dkk_per_usd_2021['DEXDNUS'].mean()*cpi_2023/cpi_2021:,.2f} ")
 print(f"Low costs of repairs in 2023: ${repair_costs_dkk_high / dkk_per_usd_2021['DEXDNUS'].mean()*cpi_2023/cpi_2021:,.2f} ")
+#%%
