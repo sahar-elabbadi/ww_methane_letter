@@ -17,6 +17,10 @@ METHANE_SCF_PER_THERM = 100
 METHANE_MMBTU_PER_THERM = 0.1
 METHANE_KG_PER_SCF = 0.019176  # kg of methane per scf
 M3_PER_GAL = 0.003785411784
+MMBTU_TO_MJ   = 1055.056    # 1 MMBtu = 1,055.056 MJ  (EIA/DOE)
+THERM_TO_MJ   = 105.5056    # 1 therm = 105.5056 MJ   (EIA/DOE)
+MSCF_TO_MMBTU = 1.038       # ≈ avg 2023 heat content of NG ~1,038 Btu/ft³ → 1.038 MMBtu per Mcf (EIA)
+MSCF_TO_MJ    = MSCF_TO_MMBTU * MMBTU_TO_MJ  # ≈ 1,094.093 MJ per Mscf
 
 
 # Methane lower heating value - when water is not condensed 
@@ -29,6 +33,8 @@ METHANE_MJ_PER_KG = (kJ_per_mol / 1000) / (MW_methane / 1000) # Result: 50 MJ / 
 ####### Data Loading ########################################
 
 ######## EIA DATA #######
+
+# Electricity data 
 def load_eia_data(sector: str, year: int):
     """
     Loads EIA annual average electricity price data for a specific sector and filters by year.
@@ -108,6 +114,54 @@ eia_industrial_tariffs_2023_df = eia_industrial_tariffs_2023_df.rename(columns={
 eia_industrial_tariffs_2023_df.to_csv(pathlib.Path("02_clean_data", "eia_industrial_tariffs_2023.csv"))
 
 eia_industrial_tariffs_2023 = eia_industrial_tariffs_2023_df['Price ($/kWh)'].to_dict() # for use elsewhere in script
+
+def make_eia_industrial_ng_2023():
+    """
+    1) Load EIA data for natural gas prices
+    2) Convert from $ / Mscf (thousand scf) to $/MJ
+    3) Fill DC from $/therm -> $/MJ (no $/Mscf for DC)
+    4) Save CSV to 02_clean_data/eia_industrial_tariffs_natural_gas_2023.csv
+    5) Return dataframe
+    """
+    dc_rate_per_therm = 0.40 # According to rates provided by Washington Gas, saved in 01_raw_data > DC_natural_gas_prices.pdf
+
+    # 1) Load the data
+    df = pd.read_excel(pathlib.Path('01_raw_data', 'EIA_natural_gas_prices.xlsx'), sheet_name='Clean - For Code', usecols=["Year", "State", "Price ($/Mscf)"])
+
+    # 2) Convert to $/MJ
+    df["Price ($/MJ)"] = pd.to_numeric(df["Price ($/Mscf)"], errors="coerce") / MSCF_TO_MJ
+
+    # 3) Insert DC from $/therm if missing (or fill its $/MJ if present but NaN)
+    dc_mj = dc_rate_per_therm / THERM_TO_MJ
+    is_dc = df["State"].astype(str).str.upper().isin(["DC", "DISTRICT OF COLUMBIA"])
+    if is_dc.any():
+        df.loc[is_dc, "Price ($/MJ)"] = df.loc[is_dc, "Price ($/MJ)"].fillna(dc_mj)
+    else:
+        # match your naming convention (abbr if others are abbrs)
+        use_abbr = df["State"].astype(str).map(len).eq(2).any()
+        dc_name = "DC" if use_abbr else "District of Columbia"
+        df = pd.concat(
+            [df, pd.DataFrame({"Year": [2023], "State": [dc_name], "Price ($/Mscf)": [pd.NA], "Price ($/MJ)": [dc_mj]})],
+            ignore_index=True,
+        )
+
+    # 4) Save the spreadsheet (same pattern as your electricity code)
+    out_path = pathlib.Path("02_clean_data", "eia_industrial_tariffs_natural_gas_2023.csv")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    eia_industrial_tariffs_2023_df = (
+        df.set_index("State")[["Price ($/MJ)"]].sort_index()
+    )
+    eia_industrial_tariffs_2023_df.to_csv(out_path)
+
+    # 5) Dict for use elsewhere (mirrors your electricity code)
+    eia_industrial_tariffs_2023 = eia_industrial_tariffs_2023_df["Price ($/MJ)"].to_dict()
+
+    return eia_industrial_tariffs_2023_df
+
+# Load EIA natural gas data and process 
+eia_industrial_natural_gas_2023_df = make_eia_industrial_ng_2023()
+
+eia_industrial_natural_gas_2023 = eia_industrial_natural_gas_2023_df['Price ($/MJ)'].to_dict() # for use elsewhere in script
 
 ####### FACILITY DATA FROM EL ABBADI, FENG ET AL 2025 #########
 
@@ -666,6 +720,7 @@ def calc_leak_heat_value(plant_size, leak_rate, leak_fraction_capturable, engine
     leak_rate: leak rate as a fraction of the biogas production rate
     leak_fraction_capturable: fraction of the leak that can be captured
     power_to_heat_ratio: electrical production from CHP system divided by heat production from CHP system (units of energy) 
+    nat_gas_price_per_MJ: price of natural gas in USD per MJ
 
     """
      biogas_production_kgCH4_per_hr = calc_biogas_production_rate(plant_size, method="chini_data") # Function outputs biogas production in kg CH4/hr
@@ -704,7 +759,7 @@ def calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine_
     return leak_value_usd_per_hour
 
 
-def calc_payback_period(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, ogi_cost=100000): 
+def calc_payback_period(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, power_to_heat_ratio, nat_gas_price_per_MJ, ogi_cost=100000): 
     """
     Calculate the payback period (days) for a methane leak OGI survey based on the leak value.
     
@@ -714,14 +769,14 @@ def calc_payback_period(plant_size, leak_rate, leak_fraction_capturable, engine_
     leak_fraction_capturable: fraction of the leak that can be captured
     electricity_price_per_kWh: price of electricity in USD per kWh
     """
-    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh)
+    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, power_to_heat_ratio, nat_gas_price_per_MJ)
     
     payback_period = ogi_cost / leak_value * (1/24) # Payback period in days
     
     return payback_period
 
 
-def calc_annual_savings(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, ogi_cost=100000):
+def calc_annual_savings(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, power_to_heat_ratio, nat_gas_price_per_MJ, ogi_cost=100000):
     """
     Calculate the annual savings from capturing methane leaks.
     
@@ -733,14 +788,14 @@ def calc_annual_savings(plant_size, leak_rate, leak_fraction_capturable, engine_
     ogi_cost: cost of OGI survey in USD
     """
     
-    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh)
+    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, power_to_heat_ratio, nat_gas_price_per_MJ)
     
 
     annual_savings = leak_value * 24 * 365 - ogi_cost  # Annual savings in USD
     
     return annual_savings
 
-def calc_annual_revenue(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, ogi_cost=100000):
+def calc_annual_revenue(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, power_to_heat_ratio, nat_gas_price_per_MJ, ogi_cost=100000):
     """
     Calculate the annual savings from capturing methane leaks.
     
@@ -752,7 +807,7 @@ def calc_annual_revenue(plant_size, leak_rate, leak_fraction_capturable, engine_
     ogi_cost: cost of OGI survey in USD
     """
     
-    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh)
+    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, power_to_heat_ratio, nat_gas_price_per_MJ)
     
 
     annual_revenue = leak_value * 24 * 365  # Annual revenue in USD
@@ -761,7 +816,7 @@ def calc_annual_revenue(plant_size, leak_rate, leak_fraction_capturable, engine_
 
 
 
-def solve_leak_rate_for_value(target_value_usd_per_year, plant_size, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh):
+def solve_leak_rate_for_value(target_value_usd_per_year, plant_size, leak_fraction_capturable, engine_efficiency, electricity_price_per_kWh, heat_to_power_ratio, nat_gas_price_per_MJ):
     """
     Solve for the methane leak rate (fraction of biogas lost) required 
     to reach a target monetary value of leaks.
@@ -775,11 +830,18 @@ def solve_leak_rate_for_value(target_value_usd_per_year, plant_size, leak_fracti
 
     # Step 3: Conversion factor (USD/hr per unit leak_rate)
     conversion_factor = (
+        # Electricity component 
         mj_per_kg_CH4()
         * leak_fraction_capturable
         * (1 / mj_per_kWh())
         * engine_efficiency
-        * electricity_price_per_kWh
+        * electricity_price_per_kWh 
+        + # Heat component
+        (mj_per_kg_CH4()
+        * leak_fraction_capturable
+        * engine_efficiency
+        * (1/heat_to_power_ratio)
+        * nat_gas_price_per_MJ)
     )
 
     # Step 4: Solve for leak rate
