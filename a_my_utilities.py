@@ -251,6 +251,9 @@ def load_and_clean_facility_data(filepath: str) -> pd.DataFrame:
     # Add price of electricity based on EIA state average 
     df["electricity_cost"] = df["state"].map(eia_industrial_tariffs_2023)
 
+    # Add price of natural gas based on EIA state average
+    df["natural_gas_cost"] = df["state"].map(eia_industrial_natural_gas_2023)
+
     # Save files
     wwtp_save_path = pathlib.Path("02_clean_data", "wwtp_data.csv")
     df.to_csv(wwtp_save_path, index=False)
@@ -780,8 +783,8 @@ def calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, *,
 
     """
 
-    leak_electricity_usd = calc_leak_power_value(plant_size, leak_rate, leak_fraction_capturable, engine.efficiency, electricity_price_per_kWh)
-    leak_heat_value = calc_leak_heat_value(plant_size, leak_rate, leak_fraction_capturable, engine.efficiency, engine.power_to_heat_ratio, nat_gas_price_per_MJ)
+    leak_electricity_usd = calc_leak_power_value(plant_size, leak_rate, leak_fraction_capturable, engine=engine, electricity_price_per_kWh=electricity_price_per_kWh)
+    leak_heat_value = calc_leak_heat_value(plant_size, leak_rate, leak_fraction_capturable, engine=engine, nat_gas_price_per_MJ=nat_gas_price_per_MJ)
 
     leak_value_usd_per_hour = leak_electricity_usd + leak_heat_value
     
@@ -801,7 +804,7 @@ def calc_payback_period(plant_size, leak_rate, leak_fraction_capturable, *,
     leak_fraction_capturable: fraction of the leak that can be captured
     electricity_price_per_kWh: price of electricity in USD per kWh
     """
-    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine.efficiency, electricity_price_per_kWh, engine.power_to_heat_ratio, nat_gas_price_per_MJ)
+    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine=engine, electricity_price_per_kWh=electricity_price_per_kWh, nat_gas_price_per_MJ=nat_gas_price_per_MJ)
     
     payback_period = ogi_cost / leak_value * (1/24) # Payback period in days
     
@@ -823,7 +826,8 @@ def calc_annual_savings(plant_size, leak_rate, leak_fraction_capturable, *,
     ogi_cost: cost of OGI survey in USD
     """
     
-    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine.efficiency, electricity_price_per_kWh, engine.power_to_heat_ratio, nat_gas_price_per_MJ)
+    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, 
+                                     engine=engine, electricity_price_per_kWh=electricity_price_per_kWh, nat_gas_price_per_MJ=nat_gas_price_per_MJ)
     
 
     annual_savings = leak_value * 24 * 365 - ogi_cost  # Annual savings in USD
@@ -844,7 +848,9 @@ def calc_annual_revenue(plant_size, leak_rate, leak_fraction_capturable, *,
     ogi_cost: cost of OGI survey in USD
     """
     
-    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, engine.efficiency, electricity_price_per_kWh, engine.power_to_heat_ratio, nat_gas_price_per_MJ)
+    leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, 
+                                     engine=engine, electricity_price_per_kWh=electricity_price_per_kWh, nat_gas_price_per_MJ=nat_gas_price_per_MJ)
+    
     
 
     annual_revenue = leak_value * 24 * 365  # Annual revenue in USD
