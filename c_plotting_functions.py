@@ -7,6 +7,7 @@ import pandas as pd
 import matplotlib.ticker as mticker
 import matplotlib.colors as mcolors
 from a_my_utilities import calc_annual_savings, calc_annual_revenue, set_chini_dataset
+from a_my_utilities import Engine
 
 chini_data = pd.read_csv(pathlib.Path("02_clean_data", "chini_cleaned.csv"))  
 
@@ -21,10 +22,11 @@ set_chini_dataset(
 def plot_methane_savings_vary_leak_rate(
     leak_fraction_capturable,
     electricity_price_per_kWh,
+    nat_gas_price_per_MJ,
+    engine: Engine, # <- pass an Engine object
     ogi_cost=100000,
     plant_sizes_m3_per_day_range=(0, 1_200_000),
     leak_rates=np.linspace(0, 0.25, 200),
-    engine_efficiency=0.45,
     resolution=200,
     fig=None,
     ax=None,
@@ -50,8 +52,9 @@ def plot_methane_savings_vary_leak_rate(
                 plant_size=X[i, j],
                 leak_rate=Y[i, j],
                 leak_fraction_capturable=leak_fraction_capturable,
-                engine_efficiency=engine_efficiency, 
+                engine=engine, 
                 electricity_price_per_kWh=electricity_price_per_kWh,
+                nat_gas_price_per_MJ=nat_gas_price_per_MJ,
                 ogi_cost=ogi_cost
             )
 
@@ -93,10 +96,10 @@ def plot_methane_savings_vary_leak_rate(
     # ax.tricontour(Xf, Yf, Zf, levels=[0], colors='black', linewidths=3.0, linestyles='solid', zorder=3)
 
     # Cost of OGI survey
-    cost1 = ax.tricontour(Xf, Yf, Zf, levels=[100_000], colors='black', linewidths=3.0, linestyles='dashed', zorder=3)
-        # Cost of OGI survey
-        #     
-    ax.clabel(cost1, inline=True, fmt={100_000: "OGI survey"}, fontsize=16)
+    # cost1 = ax.tricontour(Xf, Yf, Zf, levels=[100_000], colors='black', linewidths=3.0, linestyles='dashed', zorder=3)
+    #     # Cost of OGI survey
+    #     #     
+    # ax.clabel(cost1, inline=True, fmt={100_000: "OGI survey"}, fontsize=16)
 
 
     # Axes formatting
@@ -132,10 +135,11 @@ def plot_methane_savings_vary_leak_rate(
 def plot_methane_savings_vary_capturable(
     leak_rate,  # <-- fixed leak rate
     electricity_price_per_kWh,
+    nat_gas_price_per_MJ,
+    engine: Engine, # <- pass an Engine object
     ogi_cost=100000,
     plant_sizes_m3_per_day_range=(0, 1_200_000),
     capturable_fraction_range=(0, 1.0),   # <-- now the y-axis variable
-    engine_efficiency=0.45,
     resolution=200,
     fig=None,
     ax=None,
@@ -178,8 +182,9 @@ def plot_methane_savings_vary_capturable(
                 plant_size=X[i, j],
                 leak_rate=leak_rate,   # <-- fixed
                 leak_fraction_capturable=Y[i, j],  # <-- variable
-                engine_efficiency=engine_efficiency,
+                engine=engine,
                 electricity_price_per_kWh=electricity_price_per_kWh,
+                nat_gas_price_per_MJ=nat_gas_price_per_MJ,
                 ogi_cost=ogi_cost
             )
 
@@ -229,10 +234,10 @@ def plot_methane_savings_vary_capturable(
     # )
 
     # Cost of OGI survey
-    cost1 = ax.tricontour(X_flat, Y_flat, Z_flat, levels=[100_000], colors='black', 
-                  linewidths=3.0, linestyles='dashed', zorder=3)
+    # cost1 = ax.tricontour(X_flat, Y_flat, Z_flat, levels=[100_000], colors='black', 
+    #               linewidths=3.0, linestyles='dashed', zorder=3)
     
-    ax.clabel(cost1, inline=True, fmt={100_000: "OGI survey"}, fontsize=16)
+    # ax.clabel(cost1, inline=True, fmt={100_000: "OGI survey"}, fontsize=16)
 
 
     # Axes formatting

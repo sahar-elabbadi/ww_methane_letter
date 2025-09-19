@@ -11,15 +11,19 @@ import pandas as pd
 import matplotlib.colors as mcolors
 import pathlib
 from c_plotting_functions import plot_methane_savings_vary_leak_rate, plot_methane_savings_vary_capturable
+from a_my_utilities import Engine, ENGINES
+
+max_plant_size_m3_per_day=1_600_000
 
 elec_price = 0.09  # $/kWh fixed for all panels - value based on calculations in Paper_Calculations.py, median electricity price for facilities with CHP
-max_plant_size_m3_per_day=1_600_000
+gas_price = 0.008 # $/MJ fixed for all panels - value based on calculations in Paper_Calculations.py, median natural gas price for facilities with CHP
+engine = ENGINES['reciprocating_lean_burn'] # SET ENGINE TYPE HERE 
 
 vmin = 0
 vmax = 4_700_000
 levels_fill = np.linspace(vmin, vmax, 100)  
 # levels_line = np.linspace(vmin, vmax, 10)    # default evenly spaced lines
-levels_line = [250_000, 500_000, 750_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000, 4_000_000, 5_000_000]
+levels_line = [100_000, 250_000, 500_000, 750_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000, 4_000_000, 5_000_000]
 
 
 # Shared cmap/norm for positives
@@ -39,10 +43,11 @@ params = {"leak_fraction_capturable": 0.5, "electricity_price_per_kWh": elec_pri
 plot_methane_savings_vary_leak_rate(
     leak_fraction_capturable=0.5,
     electricity_price_per_kWh=elec_price,
+    nat_gas_price_per_MJ=gas_price, 
+    engine=engine,
     ogi_cost=100000,
     plant_sizes_m3_per_day_range=(0, max_plant_size_m3_per_day),
     leak_rates=np.linspace(0, 0.50, 200),
-    engine_efficiency=0.45,
     fig=fig,
     ax=axes[0, 0],
     levels_line=levels_line,
@@ -62,8 +67,9 @@ params = {"leak_fraction_capturable": 0.8, "electricity_price_per_kWh": elec_pri
 plot_methane_savings_vary_leak_rate(
     leak_fraction_capturable=0.8,
     electricity_price_per_kWh=elec_price,
+    nat_gas_price_per_MJ=gas_price, 
     leak_rates=np.linspace(0, 0.50, 200),
-    engine_efficiency=0.45,
+    engine=engine,
     plant_sizes_m3_per_day_range=(0, max_plant_size_m3_per_day),
     ogi_cost=100000,
     fig=fig,
@@ -86,8 +92,9 @@ axes[0, 1].text(0.02, 0.02, "Capturable: 0.8", transform=axes[0, 1].transAxes, f
 plot_methane_savings_vary_capturable(
     leak_rate=0.05,
     electricity_price_per_kWh=elec_price,
+    nat_gas_price_per_MJ=gas_price, 
+    engine=engine,
     ogi_cost=100000,
-    engine_efficiency=0.45,
     plant_sizes_m3_per_day_range=(0, max_plant_size_m3_per_day),
     fig=fig,
     ax=axes[1, 0],
@@ -105,8 +112,9 @@ axes[1,0].text(0.02, 0.04, "Leak rate: 5%", transform=axes[1, 0].transAxes, font
 plot_methane_savings_vary_capturable(
     leak_rate=0.15,
     electricity_price_per_kWh=elec_price,
+    nat_gas_price_per_MJ=gas_price, 
+    engine=engine,
     ogi_cost=100000,
-    engine_efficiency=0.45,
     plant_sizes_m3_per_day_range=(0, max_plant_size_m3_per_day),
     fig=fig,
     ax=axes[1, 1],
@@ -166,187 +174,188 @@ fig.savefig(save_path, dpi=300, bbox_inches='tight', transparent=False)
 print(f"Plot saved to: {save_path.resolve()}")
 
 #%%
-### CHANGE ELECTRICITY PRICE 
-import pandas as pd 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import matplotlib.colors as mcolors
-import pathlib
-from c_plotting_functions import plot_methane_savings_vary_leak_rate, plot_methane_savings_vary_capturable
 
-max_plant_size_m3_per_day=1_600_000
+# ### CHANGE ELECTRICITY PRICE 
+# import pandas as pd 
+# import matplotlib.pyplot as plt
+# import numpy as np
+# import pandas as pd
+# import matplotlib.colors as mcolors
+# import pathlib
+# from c_plotting_functions import plot_methane_savings_vary_leak_rate, plot_methane_savings_vary_capturable
 
-vmin = 0
-vmax = 9_200_000
-levels_fill = np.linspace(vmin, vmax, 100)  
-# levels_line = np.linspace(vmin, vmax, 10)    # default evenly spaced lines
-levels_line = [250_000, 500_000, 750_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 
-               3_000_000, 4_000_000, 5_000_000, 6_000_000, 7_000_000, 8_000_000, 9_000_000]
+# max_plant_size_m3_per_day=1_600_000
 
-
-# Shared cmap/norm for positives
-b, g, y, o, r = "#60C1CF", "#79BF82", "#F3C354", "#F98F60", "#ED586F"
-shared_cmap = mcolors.LinearSegmentedColormap.from_list('custom_map', [o, y, g, b])
-shared_norm = mcolors.BoundaryNorm(levels_fill, ncolors=shared_cmap.N, clip=True)
+# vmin = 0
+# vmax = 9_200_000
+# levels_fill = np.linspace(vmin, vmax, 100)  
+# # levels_line = np.linspace(vmin, vmax, 10)    # default evenly spaced lines
+# levels_line = [250_000, 500_000, 750_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 
+#                3_000_000, 4_000_000, 5_000_000, 6_000_000, 7_000_000, 8_000_000, 9_000_000]
 
 
-fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+# # Shared cmap/norm for positives
+# b, g, y, o, r = "#60C1CF", "#79BF82", "#F3C354", "#F98F60", "#ED586F"
+# shared_cmap = mcolors.LinearSegmentedColormap.from_list('custom_map', [o, y, g, b])
+# shared_norm = mcolors.BoundaryNorm(levels_fill, ncolors=shared_cmap.N, clip=True)
 
 
-# -------------------------
-# Top row — $0.09 / kWh
-# -------------------------
-
-elec_price = 0.08  # $/kWh fixed for all panels
-
-# Panel (0,0): capturable = 0.5
-params = {"leak_fraction_capturable": 0.5, "electricity_price_per_kWh": elec_price}
-plot_methane_savings_vary_leak_rate(
-    leak_fraction_capturable=0.5,
-    electricity_price_per_kWh=elec_price,
-    ogi_cost=100000,
-    plant_sizes_m3_per_day_range=(0, max_plant_size_m3_per_day),
-    leak_rates=np.linspace(0, 0.50, 200),
-    engine_efficiency=0.45,
-    fig=fig,
-    ax=axes[0, 0],
-    levels_line=levels_line,
-    levels_fill=levels_fill,
-    norm=shared_norm,
-    cmap=shared_cmap,
-    title=False  
-)
-# (Optional) override/clarify title outside the function
-# axes[0, 0].set_title("Capturable fraction: 0.5 — vary leak rate")
-# axes[0,0].set_xticks([])  # Remove x-ticks for cleaner look
-axes[0, 0].text(0.02, 0.02, "Capturable fraction: 0.5", transform=axes[0, 0].transAxes, fontsize=18)
-axes[0, 0].text(0.02, 0.1, "$0.08/kWh", transform=axes[0, 0].transAxes, fontsize=18)
+# fig, axes = plt.subplots(2, 2, figsize=(14, 12))
 
 
-# Panel (0,1): capturable = 0.8
-params = {"leak_fraction_capturable": 0.8, "electricity_price_per_kWh": elec_price}
-plot_methane_savings_vary_leak_rate(
-    leak_fraction_capturable=0.8,
-    electricity_price_per_kWh=elec_price,
-    leak_rates=np.linspace(0, 0.50, 200),
-    engine_efficiency=0.45,
-    plant_sizes_m3_per_day_range=(0, max_plant_size_m3_per_day),
-    ogi_cost=100000,
-    fig=fig,
-    ax=axes[0, 1],
-    levels_line=levels_line,
-    cmap=shared_cmap,
-    title=False,
-    levels_fill=levels_fill,
-    norm=shared_norm,
-)
+# # -------------------------
+# # Top row — $0.09 / kWh
+# # -------------------------
 
-# axes[0, 1].set_title("Capturable fraction: 0.8 — vary leak rate")
-axes[0, 1].text(0.02, 0.02, "Capturable frac.: 0.8", transform=axes[0, 1].transAxes, fontsize=18)
-axes[0, 1].text(0.02, 0.1, "$0.08/kWh", transform=axes[0, 1].transAxes, fontsize=18)
+# elec_price = 0.08  # $/kWh fixed for all panels
 
-# -------------------------
-# Bottom row — $0.18/kWh 
-# -------------------------
-
-elec_price = 0.18  # $/kWh fixed for all panels
-
-# Panel (0,0): capturable = 0.5
-params = {"leak_fraction_capturable": 0.5, "electricity_price_per_kWh": elec_price}
-plot_methane_savings_vary_leak_rate(
-    leak_fraction_capturable=0.5,
-    electricity_price_per_kWh=elec_price,
-    ogi_cost=100000,
-    plant_sizes_m3_per_day_range=(0, max_plant_size_m3_per_day),
-    leak_rates=np.linspace(0, 0.50, 200),
-    engine_efficiency=0.45,
-    fig=fig,
-    ax=axes[1, 0],
-    levels_line=levels_line,
-    levels_fill=levels_fill,
-    norm=shared_norm,
-    cmap=shared_cmap,
-    title=False  
-)
-# (Optional) override/clarify title outside the function
-# axes[0, 0].set_title("Capturable fraction: 0.5 — vary leak rate")
-# axes[0,0].set_xticks([])  # Remove x-ticks for cleaner look
-axes[1, 0].text(0.02, 0.02, "Capturable fraction: 0.5", transform=axes[1, 0].transAxes, fontsize=18)
-axes[1, 0].text(0.02, 0.1, "$0.18/kWh", transform=axes[1, 0].transAxes, fontsize=18)
+# # Panel (0,0): capturable = 0.5
+# params = {"leak_fraction_capturable": 0.5, "electricity_price_per_kWh": elec_price}
+# plot_methane_savings_vary_leak_rate(
+#     leak_fraction_capturable=0.5,
+#     electricity_price_per_kWh=elec_price,
+#     ogi_cost=100000,
+#     plant_sizes_m3_per_day_range=(0, max_plant_size_m3_per_day),
+#     leak_rates=np.linspace(0, 0.50, 200),
+#     engine_efficiency=0.45,
+#     fig=fig,
+#     ax=axes[0, 0],
+#     levels_line=levels_line,
+#     levels_fill=levels_fill,
+#     norm=shared_norm,
+#     cmap=shared_cmap,
+#     title=False  
+# )
+# # (Optional) override/clarify title outside the function
+# # axes[0, 0].set_title("Capturable fraction: 0.5 — vary leak rate")
+# # axes[0,0].set_xticks([])  # Remove x-ticks for cleaner look
+# axes[0, 0].text(0.02, 0.02, "Capturable fraction: 0.5", transform=axes[0, 0].transAxes, fontsize=18)
+# axes[0, 0].text(0.02, 0.1, "$0.08/kWh", transform=axes[0, 0].transAxes, fontsize=18)
 
 
-# Panel (0,1): capturable = 0.8
-params = {"leak_fraction_capturable": 0.8, "electricity_price_per_kWh": elec_price}
-plot_methane_savings_vary_leak_rate(
-    leak_fraction_capturable=0.8,
-    electricity_price_per_kWh=elec_price,
-    leak_rates=np.linspace(0, 0.50, 200),
-    engine_efficiency=0.45,
-    plant_sizes_m3_per_day_range=(0, max_plant_size_m3_per_day),
-    ogi_cost=100000,
-    fig=fig,
-    ax=axes[1, 1],
-    levels_line=levels_line,
-    cmap=shared_cmap,
-    title=False,
-    levels_fill=levels_fill,
-    norm=shared_norm,
-)
+# # Panel (0,1): capturable = 0.8
+# params = {"leak_fraction_capturable": 0.8, "electricity_price_per_kWh": elec_price}
+# plot_methane_savings_vary_leak_rate(
+#     leak_fraction_capturable=0.8,
+#     electricity_price_per_kWh=elec_price,
+#     leak_rates=np.linspace(0, 0.50, 200),
+#     engine_efficiency=0.45,
+#     plant_sizes_m3_per_day_range=(0, max_plant_size_m3_per_day),
+#     ogi_cost=100000,
+#     fig=fig,
+#     ax=axes[0, 1],
+#     levels_line=levels_line,
+#     cmap=shared_cmap,
+#     title=False,
+#     levels_fill=levels_fill,
+#     norm=shared_norm,
+# )
 
-# axes[0, 1].set_title("Capturable fraction: 0.8 — vary leak rate")
-axes[1, 1].text(0.02, 0.02, "Capturable frac.: 0.8", transform=axes[1, 1].transAxes, fontsize=18)
-axes[1, 1].text(0.02, 0.1, "$0.18/kWh", transform=axes[1, 1].transAxes, fontsize=18)
+# # axes[0, 1].set_title("Capturable fraction: 0.8 — vary leak rate")
+# axes[0, 1].text(0.02, 0.02, "Capturable frac.: 0.8", transform=axes[0, 1].transAxes, fontsize=18)
+# axes[0, 1].text(0.02, 0.1, "$0.08/kWh", transform=axes[0, 1].transAxes, fontsize=18)
+
+# # -------------------------
+# # Bottom row — $0.18/kWh 
+# # -------------------------
+
+# elec_price = 0.18  # $/kWh fixed for all panels
+
+# # Panel (0,0): capturable = 0.5
+# params = {"leak_fraction_capturable": 0.5, "electricity_price_per_kWh": elec_price}
+# plot_methane_savings_vary_leak_rate(
+#     leak_fraction_capturable=0.5,
+#     electricity_price_per_kWh=elec_price,
+#     ogi_cost=100000,
+#     plant_sizes_m3_per_day_range=(0, max_plant_size_m3_per_day),
+#     leak_rates=np.linspace(0, 0.50, 200),
+#     engine_efficiency=0.45,
+#     fig=fig,
+#     ax=axes[1, 0],
+#     levels_line=levels_line,
+#     levels_fill=levels_fill,
+#     norm=shared_norm,
+#     cmap=shared_cmap,
+#     title=False  
+# )
+# # (Optional) override/clarify title outside the function
+# # axes[0, 0].set_title("Capturable fraction: 0.5 — vary leak rate")
+# # axes[0,0].set_xticks([])  # Remove x-ticks for cleaner look
+# axes[1, 0].text(0.02, 0.02, "Capturable fraction: 0.5", transform=axes[1, 0].transAxes, fontsize=18)
+# axes[1, 0].text(0.02, 0.1, "$0.18/kWh", transform=axes[1, 0].transAxes, fontsize=18)
 
 
-#### FORMATTING ####
+# # Panel (0,1): capturable = 0.8
+# params = {"leak_fraction_capturable": 0.8, "electricity_price_per_kWh": elec_price}
+# plot_methane_savings_vary_leak_rate(
+#     leak_fraction_capturable=0.8,
+#     electricity_price_per_kWh=elec_price,
+#     leak_rates=np.linspace(0, 0.50, 200),
+#     engine_efficiency=0.45,
+#     plant_sizes_m3_per_day_range=(0, max_plant_size_m3_per_day),
+#     ogi_cost=100000,
+#     fig=fig,
+#     ax=axes[1, 1],
+#     levels_line=levels_line,
+#     cmap=shared_cmap,
+#     title=False,
+#     levels_fill=levels_fill,
+#     norm=shared_norm,
+# )
+
+# # axes[0, 1].set_title("Capturable fraction: 0.8 — vary leak rate")
+# axes[1, 1].text(0.02, 0.02, "Capturable frac.: 0.8", transform=axes[1, 1].transAxes, fontsize=18)
+# axes[1, 1].text(0.02, 0.1, "$0.18/kWh", transform=axes[1, 1].transAxes, fontsize=18)
 
 
-plt.tight_layout()
+# #### FORMATTING ####
 
-# Increase tick label size in all subplots
-for ax in axes.flat:
+
+# plt.tight_layout()
+
+# # Increase tick label size in all subplots
+# for ax in axes.flat:
     
-    ax.tick_params(labelsize=14, direction='in', length=5, width=1.5, pad=6)
+#     ax.tick_params(labelsize=14, direction='in', length=5, width=1.5, pad=6)
     
-    for spine in ax.spines.values():
-        spine.set_linewidth(2)  # thickness in points
+#     for spine in ax.spines.values():
+#         spine.set_linewidth(2)  # thickness in points
 
 
-# Axes and tick labels for combined figure: 
+# # Axes and tick labels for combined figure: 
 
-# TOP LEFT
-axes[0, 0].set_xlabel(None) # Remove xlabel to avoid clutter
-axes[0,0].set_xticklabels([])  # Remove x-ticks for cleaner look
+# # TOP LEFT
+# axes[0, 0].set_xlabel(None) # Remove xlabel to avoid clutter
+# axes[0,0].set_xticklabels([])  # Remove x-ticks for cleaner look
 
-# TOP RIGHT
-axes[0, 1].set_xlabel(None) # Remove xlabel to avoid clutter
-axes[0,1].set_xticklabels([])  # Remove x-ticks for cleaner look
-axes[0,1].set_yticklabels([])  # Remove y-ticks for cleaner look
-axes[0,1].set_ylabel(None)  # Remove ylabel to avoid clutter
+# # TOP RIGHT
+# axes[0, 1].set_xlabel(None) # Remove xlabel to avoid clutter
+# axes[0,1].set_xticklabels([])  # Remove x-ticks for cleaner look
+# axes[0,1].set_yticklabels([])  # Remove y-ticks for cleaner look
+# axes[0,1].set_ylabel(None)  # Remove ylabel to avoid clutter
 
-# BOTTOM RIGHT
-axes[1,1].set_yticklabels([])  # Remove x-ticks for cleaner look
-axes[1,1].set_ylabel(None)  # Remove x-ticks for cleaner look
+# # BOTTOM RIGHT
+# axes[1,1].set_yticklabels([])  # Remove x-ticks for cleaner look
+# axes[1,1].set_ylabel(None)  # Remove x-ticks for cleaner look
 
-plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.5)
-plt.show()
+# plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.5)
+# plt.show()
 
-for ax in axes.flat:
-    ax.set_xlabel(ax.get_xlabel(), fontsize=16)  # bump x-axis label font size
-    ax.set_ylabel(ax.get_ylabel(), fontsize=16)  # bump y-axis label font size
+# for ax in axes.flat:
+#     ax.set_xlabel(ax.get_xlabel(), fontsize=16)  # bump x-axis label font size
+#     ax.set_ylabel(ax.get_ylabel(), fontsize=16)  # bump y-axis label font size
 
-for ax in axes.flat:
-    ax.tick_params(axis="both", which="major", labelsize=14, length=6, width=1.5, direction="in", pad=6)
+# for ax in axes.flat:
+#     ax.tick_params(axis="both", which="major", labelsize=14, length=6, width=1.5, direction="in", pad=6)
 
 
-# ===========================
-# SAVE FIGURE
-# ===========================
-save_path = pathlib.Path("03_figures", "Figure_4_electricity.png")
-save_path.parent.mkdir(parents=True, exist_ok=True)
-fig.savefig(save_path, dpi=300, bbox_inches='tight', transparent=False)
-print(f"Plot saved to: {save_path.resolve()}")
+# # ===========================
+# # SAVE FIGURE
+# # ===========================
+# save_path = pathlib.Path("03_figures", "Figure_4_electricity.png")
+# save_path.parent.mkdir(parents=True, exist_ok=True)
+# fig.savefig(save_path, dpi=300, bbox_inches='tight', transparent=False)
+# print(f"Plot saved to: {save_path.resolve()}")
 
 # %%
 
