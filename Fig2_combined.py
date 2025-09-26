@@ -39,13 +39,14 @@ measurement_data_ad = measurement_data_ad[
     (measurement_data_ad['production_normalized_CH4_percent'] > 0)
 ].copy()
 
-# Label availability as in your second script
+# Label biogas availability based on data source
 measurement_data_ad['data_availability'] = (
     measurement_data_ad['source']
     .fillna('')
     .apply(lambda x: 'Biogas data available' if 'Fredenslund et al., 2023' in x else 'Biogas production interpolated from flow')
 )
 
+measurement_data_ad.to_csv(pathlib.Path("02_clean_data", "measurement_data_ad.csv"), index=False)
 # =========================
 # Helpers
 # =========================
