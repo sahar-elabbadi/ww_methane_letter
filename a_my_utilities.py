@@ -355,9 +355,13 @@ def g_per_s_to_kg_per_hour(g_per_s):
     """
     Convert grams per second to kg per hour 
     """
-
-    
     return g_per_s *3.6
+
+def t_per_day_to_kg_per_hr(t_per_day):
+    """
+    Convert tonnes per day to kg per hour 
+    """
+    return t_per_day * (1000/24)
 
 def convert_mj_to_kg_CH4(mj_ch4): 
     """

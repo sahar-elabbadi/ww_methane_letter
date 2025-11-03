@@ -4,7 +4,7 @@
 import pandas as pd 
 import matplotlib.pyplot as plt
 import pathlib
-from a_my_utilities import mgd_to_m3_per_day, g_per_s_to_kg_per_hour
+from a_my_utilities import mgd_to_m3_per_day, g_per_s_to_kg_per_hour, t_per_day_to_kg_per_hr
 
 #%% 
 ####################### Data cleaning for Moore et al., 2023 ######################
@@ -71,7 +71,70 @@ def clean_moore2023_data():
     return reorder_merged
 
 # Call the function
-moore_data = clean_moore2023_data()
+moore2023_data = clean_moore2023_data()
+
+
+#%% 
+####################### Data cleaning for Moore et al., 2025 ######################
+
+def clean_moore2025_data():
+    # File and sheet names
+    filepath = pathlib.PurePath("01_raw_data", "Moore2025_SI-data.xlsx")
+    flow_sheet = 'tableS5_bod_flow'
+    measurement_sheet = 'tableS6_measurements'
+
+    moore2025_data = pd.read_excel(filepath, 
+                                   sheet_name='figure1a_data', 
+                                   usecols=['Flow Rate (MGD)', 'CH4 emission rate (ton per day)', 'Anaerobic Digestion']
+                                )
+
+    # Rename columns
+    moore2025_data = moore2025_data.rename(columns={
+    'Flow Rate (MGD)': 'flow_mgd',
+    'CH4 emission rate (ton per day)': 'ch4_t_per_d',
+    'Anaerobic Digestion': 'ad'
+    })
+
+    # Columns that should be numeric
+    num_cols = ['flow_mgd', 'ch4_t_per_d']
+
+    # Coerce numeric columns
+    moore2025_data[num_cols] = moore2025_data[num_cols].apply(pd.to_numeric, errors='coerce')
+
+    # Keep AD column as string
+    moore2025_data['ad'] = moore2025_data['ad'].astype(str)
+
+    # Make has_ad column based on entries in "ad" column 
+    moore2025_data['has_ad'] = moore2025_data['ad'].apply(lambda x: 'yes' if x == 'AD' else ('unknown' if x == 'Unknown' else 'no'))
+
+    # Convert to standard units 
+    flow_column = 'flow_m3_per_day'
+    measurement_column = 'ch4_kg_per_hr'
+
+    moore2025_data[flow_column] = moore2025_data['flow_mgd'].apply(mgd_to_m3_per_day)
+    moore2025_data[measurement_column] = moore2025_data['ch4_t_per_d'].apply(t_per_day_to_kg_per_hr) 
+
+    # Add source column
+    moore2025_data['source'] = "Moore et al., 2025"
+
+    # Add column for 'reported_biogas_production' 
+    moore2025_data['reported_biogas_production'] = "no"
+
+    # Add column for 'biogas_production_kgCH4_per_hr
+    moore2025_data['biogas_production_kgCH4_per_hr'] = pd.NA
+
+    # Add a column for PE in size that is NA 
+    moore2025_data['size_PE'] = pd.NA
+
+    # Reorder columns
+    reorder_moore2025 = moore2025_data[['source', flow_column, 'size_PE', measurement_column, 'has_ad', 
+                             'reported_biogas_production', 'biogas_production_kgCH4_per_hr']]
+    
+    return reorder_moore2025
+
+
+# Call the function
+moore2025_data = clean_moore2025_data()
 
 
 #%% 
@@ -270,12 +333,10 @@ fredenslund_data = clean_fredenslund_data(fredenslund_with_pe)
 #%%
 
 
-
-
 ####################### Combine datasets ######################
 
 # Combine into one long DataFrame
-measurement_data = pd.concat([moore_data, song_data, fredenslund_data], ignore_index=True)
+measurement_data = pd.concat([moore2023_data, moore2025_data, song_data, fredenslund_data], ignore_index=True)
 save_path = pathlib.Path("02_clean_data", "measurement_data.csv")
 measurement_data.to_csv(save_path, index=False)
 
