@@ -15,7 +15,8 @@ import pandas as pd
 BIOGAS_FRACTION_CH4 = 0.65  # Assume 65% CH4 in biogas. Source: Metcalf & Eddy, page 1520
 METHANE_SCF_PER_THERM = 100
 METHANE_MMBTU_PER_THERM = 0.1
-METHANE_KG_PER_SCF = 0.019176  # kg of methane per scf
+METHANE_KG_PER_SCF = 0.019176  # kg of methane per scf (standard conditions, 15C, 1 atm) 
+METHANE_KG_PER_NM3 = 0.7168 # kg of CH4 per normal m3 (Normal conditions: 0 C , 1 atm) 
 M3_PER_GAL = 0.003785411784
 MMBTU_TO_MJ   = 1055.056    # 1 MMBtu = 1,055.056 MJ  (EIA/DOE)
 THERM_TO_MJ   = 105.5056    # 1 therm = 105.5056 MJ   (EIA/DOE)
@@ -404,6 +405,16 @@ def convert_to_scf(value, unit):
         return value * (1/METHANE_MMBTU_PER_THERM) * METHANE_SCF_PER_THERM / BIOGAS_FRACTION_CH4  
     else:
         return None
+    
+
+def Nm3_per_year_to_kgCH4_per_hr(Nm3_per_year):
+    """
+    Convert normal cubic meters per year to kg CH4 per hour
+    Normal conditions: 0 C , 1 atm
+    """
+    kgCH4_per_year = Nm3_per_year * METHANE_KG_PER_NM3 # Nm3 to kg CH4
+    kgCH4_per_hr = kgCH4_per_year / (365*24) # year to hours
+    return kgCH4_per_hr
 
 
 ####### Analysis Functions ########################################

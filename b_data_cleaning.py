@@ -4,7 +4,7 @@
 import pandas as pd 
 import matplotlib.pyplot as plt
 import pathlib
-from a_my_utilities import mgd_to_m3_per_day, g_per_s_to_kg_per_hour, t_per_day_to_kg_per_hr
+from a_my_utilities import mgd_to_m3_per_day, g_per_s_to_kg_per_hour, t_per_day_to_kg_per_hr, Nm3_per_year_to_kgCH4_per_hr
 
 #%% 
 ####################### Data cleaning for Moore et al., 2023 ######################
@@ -80,8 +80,6 @@ moore2023_data = clean_moore2023_data()
 def clean_moore2025_data():
     # File and sheet names
     filepath = pathlib.PurePath("01_raw_data", "Moore2025_SI-data.xlsx")
-    flow_sheet = 'tableS5_bod_flow'
-    measurement_sheet = 'tableS6_measurements'
 
     moore2025_data = pd.read_excel(filepath, 
                                    sheet_name='figure1a_data', 
@@ -330,13 +328,59 @@ excel_path = pathlib.Path("01_raw_data", "Fredenslund2023_SI-data.xlsx")
 raw_df = load_fredenslund_data(excel_path)
 fredenslund_data = clean_fredenslund_data(fredenslund_with_pe)
 # %%
+####################### Data cleaning for Gälfalk et al., 2025 ######################
+
+def clean_galfalk_data():
+
+    # File and sheet names
+    filepath = pathlib.PurePath("01_raw_data", "Galfalk2025_table1+email_data.xlsx")
+    sheet = 'data'
+
+    galfalk2025_data = pd.read_excel(filepath, 
+                                sheet_name=sheet)
+    
+    # Housekeeping 
+    # Columns that should numeric 
+    num_cols = ['measured_ch4_tons_per_year', 'biogas_Nm3_per_yr', 'ch4_Nm3_per_yr', 'flaring']
+
+    # Coerce numeric columns 
+    galfalk2025_data[num_cols] = galfalk2025_data[num_cols].apply(pd.to_numeric, errors='coerce')
+
+    # Columns that should be a string 
+    galfalk2025_data['has_ad'] = galfalk2025_data['has_ad'].astype(str)
+
+    # Convert to standard units 
+    measurement_column = 'ch4_kg_per_hr'
+
+    galfalk2025_data[measurement_column] = galfalk2025_data['measured_ch4_tons_per_year'].apply(t_per_day_to_kg_per_hr)
+    galfalk2025_data['biogas_production_kgCH4_per_hr'] = galfalk2025_data['ch4_Nm3_per_yr'].apply(Nm3_per_year_to_kgCH4_per_hr)
+
+    # Add source column 
+    galfalk2025_data['source'] = "Galfalk et al., 2025"
+
+    # Add column for 'reported_biogas_production'
+    galfalk2025_data['reported_biogas_production'] = "yes" 
+
+    # Add column for facility size in m3/day 
+    galfalk2025_data['flow_m3_per_day'] = pd.NA
+
+    # Add column for facility size in PE
+    galfalk2025_data['size_PE'] = pd.NA
+
+    # Reorder columns 
+    reorder_galfalk2025 = galfalk2025_data[['source', 'flow_m3_per_day', 'size_PE', measurement_column, 'has_ad', 
+                             'reported_biogas_production', 'biogas_production_kgCH4_per_hr']]  
+
+    return reorder_galfalk2025
+
+galfalk_data = clean_galfalk_data()
 #%%
 
 
-####################### Combine datasets ######################
+####################### Combine measurement datasets ######################
 
 # Combine into one long DataFrame
-measurement_data = pd.concat([moore2023_data, moore2025_data, song_data, fredenslund_data], ignore_index=True)
+measurement_data = pd.concat([moore2023_data, moore2025_data, song_data, fredenslund_data, galfalk_data], ignore_index=True)
 save_path = pathlib.Path("02_clean_data", "measurement_data.csv")
 measurement_data.to_csv(save_path, index=False)
 
