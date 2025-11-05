@@ -4,7 +4,7 @@
 import pandas as pd 
 import matplotlib.pyplot as plt
 import pathlib
-from a_my_utilities import mgd_to_m3_per_day, g_per_s_to_kg_per_hour, t_per_day_to_kg_per_hr, Nm3_per_year_to_kgCH4_per_hr
+from a_my_utilities import mgd_to_m3_per_day, g_per_s_to_kg_per_hour, t_per_day_to_kg_per_hr, Nm3_per_year_to_kgCH4_per_hr, t_per_yr_to_kg_per_hr
 
 #%% 
 ####################### Data cleaning for Moore et al., 2023 ######################
@@ -164,6 +164,9 @@ def clean_song_data():
 
     # Unit conversion: kg/day → kg/hour
     df[measurement_column] = df['ch4_kg_per_day'] / 24
+
+    # Source column is "Song et al., 2023" - for the source data, see raw dataset column "Song et al Source"
+    df['source'] = "Song et al., 2023"
 
     # Add column for whether or not they reported biogas production 
     df['reported_biogas_production'] = "no"
@@ -352,7 +355,7 @@ def clean_galfalk_data():
     # Convert to standard units 
     measurement_column = 'ch4_kg_per_hr'
 
-    galfalk2025_data[measurement_column] = galfalk2025_data['measured_ch4_tons_per_year'].apply(t_per_day_to_kg_per_hr)
+    galfalk2025_data[measurement_column] = galfalk2025_data['measured_ch4_tons_per_year'].apply(t_per_yr_to_kg_per_hr)
     galfalk2025_data['biogas_production_kgCH4_per_hr'] = galfalk2025_data['ch4_Nm3_per_yr'].apply(Nm3_per_year_to_kgCH4_per_hr)
 
     # Add source column 

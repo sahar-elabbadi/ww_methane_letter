@@ -364,6 +364,12 @@ def t_per_day_to_kg_per_hr(t_per_day):
     """
     return t_per_day * (1000/24)
 
+def t_per_yr_to_kg_per_hr(t_per_day):
+    """
+    Convert tonnes per day to kg per hour 
+    """
+    return t_per_day * (1000/24/365)
+
 def convert_mj_to_kg_CH4(mj_ch4): 
     """
     Convert MJ of energy in methane to kg CH4

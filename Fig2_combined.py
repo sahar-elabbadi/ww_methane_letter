@@ -21,7 +21,7 @@ from a_my_utilities import (
 # =========================
 measurement_data = load_ch4_emissions_data()
 
-# (For AD-only, we also use the Chini dataset, as in your second script)
+# For facilities that do not report biogas production, use Chini et al 2023 data to model it 
 chini_data = pd.read_csv(pathlib.Path("02_clean_data", "chini_cleaned.csv"))
 set_chini_dataset(
     chini_data,
@@ -30,27 +30,40 @@ set_chini_dataset(
     drop_negative=True,
 )
 
+# Load data with production normalized AD calculations 
 measurement_data_ad = calculate_production_normalized_ch4(
     load_data_func=load_ch4_emissions_with_ad_only,
     calc_biogas_func=calc_biogas_production_rate,
 )
+
+# Filter to remove any non-positive values 
 measurement_data_ad = measurement_data_ad[
     (measurement_data_ad['biogas_production_used_kgCH4_per_hr'] > 0) &
     (measurement_data_ad['production_normalized_CH4_percent'] > 0)
 ].copy()
 
 # Label biogas availability based on data source
+# measurement_data_ad['data_availability'] = (
+#     measurement_data_ad['source']
+#     .fillna('')
+#     .apply(lambda x: 'Biogas data available' if 'Fredenslund et al., 2023' in x else 'Biogas production interpolated from flow')
+# )
+
+# Label biogas availability based on reported biogas production
 measurement_data_ad['data_availability'] = (
-    measurement_data_ad['source']
+    measurement_data_ad['reported_biogas_production']
     .fillna('')
-    .apply(lambda x: 'Biogas data available' if 'Fredenslund et al., 2023' in x else 'Biogas production interpolated from flow')
+    .apply(lambda x: 'Biogas data available' if x.lower() == 'yes' else 'Biogas production interpolated from flow')
 )
 
+
 measurement_data_ad.to_csv(pathlib.Path("02_clean_data", "measurement_data_ad.csv"), index=False)
+
 # =========================
 # Helpers
 # =========================
 
+# Function for polotting a power plaw fit
 def _powerlaw_fit(x, y):
     """
     Fit y = a * x^b by linear regression on (log x, log y).
@@ -71,7 +84,8 @@ def _powerlaw_fit(x, y):
         "intercept_stderr": float(res.intercept_stderr)
     }
 
-
+# For making plots pretty 
+# Formatting text 
 def _format_sci_tex(num, precision=2):
     """
     LaTeX-friendly scientific notation string: '1.23 × 10^{-4}'
@@ -153,6 +167,8 @@ def plot_emissions_vs_flow_ax(
     Draw CH4 vs Flow (log–log) with 3 power-law trendlines on the given Axes.
     Returns a dict of fit coeffs for Has AD / No AD / All data.
     """
+
+    # Only include values greater than zero (filter out zero values or NaN values) 
     filtered = data[(data['flow_m3_per_day'] > 0) & (data['ch4_kg_per_hr'] > 0)].copy()
 
     # Apply group labels
