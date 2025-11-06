@@ -7,6 +7,9 @@ import pathlib
 from scipy.stats import linregress
 import json
 import matplotlib.ticker as mtick
+from scipy import stats
+import matplotlib.patches as mpatches
+
 
 from a_my_utilities import (
     load_ch4_emissions_data,
@@ -84,6 +87,92 @@ def _powerlaw_fit(x, y):
         "intercept_stderr": float(res.intercept_stderr)
     }
 
+def _powerlaw_fit_with_intervals(x, y, xfit=None, alpha=0.05, use_smearing=True):
+    """
+    Fit y = a * x^b by linear regression on (log x, log y) and compute
+    confidence and prediction intervals on the original (y) scale.
+
+    Returns:
+      {
+        "a": a, "b": b, "r2_loglog": R^2,
+        "xfit": xfit (sorted),
+        "yfit": yfit,
+        "ci_lower": ci_lower, "ci_upper": ci_upper,
+        "pi_lower": pi_lower, "pi_upper": pi_upper,
+        "stderr": s, "tcrit": tcrit, "smearing": smear
+      }
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    m = np.isfinite(x) & np.isfinite(y) & (x > 0) & (y > 0)
+    x = x[m]; y = y[m]
+
+    if x.size < 3:
+        return None  # need at least 3 to estimate variance and df=n-2
+
+    logx = np.log(x)
+    logy = np.log(y)
+
+    res = linregress(logx, logy)  # slope=b, intercept=log(a)
+    b = float(res.slope)
+    a = float(np.exp(res.intercept))
+    r2 = float(res.rvalue**2)
+
+    # Fitted values & residuals in log-space
+    logy_hat = res.intercept + res.slope * logx
+    resid = logy - logy_hat
+    n = logx.size
+    # Unbiased residual variance with df = n - 2 for simple linear regression
+    s2 = float(np.sum(resid**2) / (n - 2))
+    s = float(np.sqrt(s2))
+
+    xbar = float(np.mean(logx))
+    Sxx = float(np.sum((logx - xbar)**2))
+
+    # X points where to evaluate the line & intervals
+    if xfit is None:
+        xfit = np.geomspace(np.min(x), np.max(x), 200)
+    else:
+        xfit = np.asarray(xfit, dtype=float)
+    xfit = np.sort(xfit)  # helps with fill_between on log axes
+    logxfit = np.log(xfit)
+
+    # Standard errors in log-space
+    se_mean = s * np.sqrt(1.0 / n + (logxfit - xbar) ** 2 / Sxx)
+    se_pred = s * np.sqrt(1.0 + 1.0 / n + (logxfit - xbar) ** 2 / Sxx)
+
+    # t critical
+    tcrit = float(stats.t.ppf(1 - alpha / 2, df=n - 2))
+
+    # Fitted curve (log-space), then back-transform
+    logyfit = res.intercept + res.slope * logxfit
+
+    # Optional Duan smearing to correct E[exp(ε)] bias on back-transform
+    smear = float(np.mean(np.exp(resid))) if use_smearing else 1.0
+
+    yfit = np.exp(logyfit) * smear
+    ci_lower = yfit * np.exp(-tcrit * se_mean)
+    ci_upper = yfit * np.exp(+tcrit * se_mean)
+    pi_lower = yfit * np.exp(-tcrit * se_pred)
+    pi_upper = yfit * np.exp(+tcrit * se_pred)
+
+    return {
+        "a": a,
+        "b": b,
+        "r2_loglog": r2,
+        "xfit": xfit,
+        "yfit": yfit,
+        "ci_lower": ci_lower,
+        "ci_upper": ci_upper,
+        "pi_lower": pi_lower,
+        "pi_upper": pi_upper,
+        "stderr": s,
+        "tcrit": tcrit,
+        "smearing": smear,
+        "n": int(n),
+    }
+
+
 # For making plots pretty 
 # Formatting text 
 def _format_sci_tex(num, precision=2):
@@ -126,7 +215,7 @@ def print_trendline_results(title, coeffs_like, percent=False):
 
     print(f"\n=== {title} ===")
     # Provide a consistent order if those keys exist
-    preferred_order = ["Has AD", "No AD", "All",
+    preferred_order = ["Anaerobic digestion", "No anaerobic digestion", "All",
                        "Biogas data available", "Biogas production interpolated from flow"]
     keys = [k for k in preferred_order if k in coeffs] + [k for k in coeffs if k not in preferred_order]
 
@@ -167,6 +256,11 @@ def plot_emissions_vs_flow_ax(
     Draw CH4 vs Flow (log–log) with 3 power-law trendlines on the given Axes.
     Returns a dict of fit coeffs for Has AD / No AD / All data.
     """
+
+    # legend storage for confidence bands (avoid duplicates)
+    if not hasattr(ax, "_ci_legend_entries"):
+        ax._ci_legend_entries = []   # list of (handle, label)
+
 
     # Only include values greater than zero (filter out zero values or NaN values) 
     filtered = data[(data['flow_m3_per_day'] > 0) & (data['ch4_kg_per_hr'] > 0)].copy()
@@ -215,39 +309,85 @@ def plot_emissions_vs_flow_ax(
             return palette[label]
         return fallback
 
-    def _fit_and_plot(x, y, label, color):
-        fit = _powerlaw_fit(x, y)
-        a, b, r2 = fit["a"], fit["b"], fit["r2_loglog"]
+    # def _fit_and_plot(x, y, label, color, lw=linewidth, alpha_band=0.20, draw_pi=False):
+    #     # Compute fit and intervals on the same x-range we plot
+    #     xv = np.asarray(x, dtype=float)
+    #     xfit = np.geomspace(np.nanmin(xv[xv > 0]), np.nanmax(xv), 200)
+
+    #     out = _powerlaw_fit_with_intervals(x, y, xfit=xfit, alpha=0.05, use_smearing=True)
+    #     if out is None:
+    #         return None
+
+    #     ax.plot(out["xfit"], out["yfit"], linewidth=lw, color=color, label="_nolegend_")
+    #     # Confidence band
+    #     ax.fill_between(out["xfit"], out["ci_lower"], out["ci_upper"],
+    #                     color=color, alpha=alpha_band, linewidth=0)
+    #     # Optional prediction band (wider)
+    #     if draw_pi:
+    #         ax.fill_between(out["xfit"], out["pi_lower"], out["pi_upper"],
+    #                         color=color, alpha=alpha_band * 0.5, linewidth=0)
+
+    #     # Return everything so you can export/use later if desired
+    #     return {
+    #         "model": "power",
+    #         "a": out["a"],
+    #         "b": out["b"],
+    #         "r2_loglog": out["r2_loglog"],
+    #         "stderr_log": out["stderr"],
+    #         "tcrit": out["tcrit"],
+    #         "smearing": out["smearing"]
+    #     }
+
+    def _fit_and_plot(x, y, label, color, lw=linewidth, alpha_band=0.20):
         xv = np.asarray(x, dtype=float)
         xfit = np.geomspace(np.nanmin(xv[xv > 0]), np.nanmax(xv), 200)
-        yfit = a * xfit**b
-        a_tex = _format_sci_tex(a, legend_precision)
-        eqn = rf"$y = {a_tex}\,x^{{{b:.2f}}}$"
-        r2_text = rf"$R^{{2}}={r2:.2f}$"
-        # ax.plot(xfit, yfit, linewidth=linewidth, color=color, label=f"Trend: {label} {eqn} ({r2_text})")
-        ax.plot(xfit, yfit, linewidth=linewidth, color=color, label="_nolegend_")
 
-        return fit
+        out = _powerlaw_fit_with_intervals(x, y, xfit=xfit, alpha=0.05, use_smearing=True)
+        if out is None:
+            return None
 
-    mask_ad = filtered['group'] == 'Has AD'
+        # line
+        ax.plot(out["xfit"], out["yfit"], linewidth=lw, color=color, label="_nolegend_")
+        # 95% confidence band (shaded)
+        ax.fill_between(out["xfit"], out["ci_lower"], out["ci_upper"],
+                        color=color, alpha=alpha_band, linewidth=0, label="_nolegend_")
+
+        # per-group legend patch for CI
+        ci_label = f"{label} – 95% CI"
+        ci_patch = mpatches.Patch(facecolor=color, edgecolor='none', alpha=alpha_band, label=ci_label)
+        ax._ci_legend_entries.append((ci_patch, ci_label))
+
+        return {
+            "model": "power",
+            "a": out["a"],
+            "b": out["b"],
+            "r2_loglog": out["r2_loglog"],
+            "stderr_log": out["stderr"],
+            "tcrit": out["tcrit"],
+            "smearing": out["smearing"]
+        }
+
+
+
+    mask_ad = filtered['group'] == 'Anaerobic digestion'
     if mask_ad.any():
         fit_ad = _fit_and_plot(
             filtered.loc[mask_ad, 'flow_m3_per_day'],
             filtered.loc[mask_ad, 'ch4_kg_per_hr'],
-            "Has AD",
-            _color_for('Has AD', '#1f77b4'),
+            "Anaerobic digestion",
+            _color_for('Anaerobic digestion', '#1f77b4'),
         )
         coeffs_out["Has AD"] = fit_ad
 
-    mask_no = filtered['group'] == 'No AD'
+    mask_no = filtered['group'] == 'No anaerobic digestion'
     if mask_no.any():
         fit_no = _fit_and_plot(
             filtered.loc[mask_no, 'flow_m3_per_day'],
             filtered.loc[mask_no, 'ch4_kg_per_hr'],
-            "No AD",
-            _color_for('No AD', '#ff7f0e'),
+            "No anaerobic digestion",
+            _color_for('No anaerobic digestion', '#ff7f0e'),
         )
-        coeffs_out["No AD"] = fit_no
+        coeffs_out["No anaerobic digestion"] = fit_no
 
     fit_all = _fit_and_plot(
         filtered['flow_m3_per_day'],
@@ -257,14 +397,20 @@ def plot_emissions_vs_flow_ax(
     )
     coeffs_out["All"] = fit_all
 
-    # Clean legend (avoid duplicate hue entries)
+ # Clean legend (avoid duplicate hue entries) + add CI patches
     handles, labels = ax.get_legend_handles_labels()
     seen = set(); new_h, new_l = [], []
     for h, l in zip(handles, labels):
         if l not in seen and l != "_nolegend_":
             new_h.append(h); new_l.append(l); seen.add(l)
-    ax.legend(new_h, new_l)
-    ax.legend(fontsize=13)
+
+    # add CI patches (one per group, de-duplicated)
+    for patch, lab in getattr(ax, "_ci_legend_entries", []):
+        if lab not in seen:
+            new_h.append(patch); new_l.append(lab); seen.add(lab)
+
+    ax.legend(new_h, new_l, fontsize=13, frameon=False, handlelength=1.5, handletextpad=0.5)
+
 
     return {"model": "power", "coefficients": coeffs_out}
 
@@ -302,6 +448,10 @@ def plot_prod_norm_vs_biogas_ax(
             'Biogas production interpolated from flow': '#226f90',
         }
 
+    # legend storage for confidence bands (avoid duplicates)
+    if not hasattr(ax, "_ci_legend_entries"):
+        ax._ci_legend_entries = []
+
     sns.scatterplot(
         ax=ax,
         data=df,
@@ -318,24 +468,64 @@ def plot_prod_norm_vs_biogas_ax(
     ax.set_yscale('log')
     ax.yaxis.set_major_formatter(_percent_formatter)
 
-    def _fit_and_plot(sub_df, label, color):
+    # def _fit_and_plot(sub_df, label, color, lw=line_width, alpha_band=0.20, draw_pi=False):
+    #     x = sub_df['biogas_production_used_kgCH4_per_hr'].to_numpy()
+    #     y = sub_df['production_normalized_CH4_percent'].to_numpy()  # fraction 0–1
+    #     m = np.isfinite(x) & np.isfinite(y) & (x > 0) & (y > 0)
+    #     x = x[m]; y = y[m]
+    #     if x.size < 3:
+    #         return None
+
+    #     xfit = np.geomspace(x.min(), x.max(), 200)
+    #     out = _powerlaw_fit_with_intervals(x, y, xfit=xfit, alpha=0.05, use_smearing=True)
+    #     if out is None:
+    #         return None
+
+    #     ax.plot(out["xfit"], out["yfit"], lw=lw, color=color, label="_nolegend_")
+    #     ax.fill_between(out["xfit"], out["ci_lower"], out["ci_upper"],
+    #                     color=color, alpha=alpha_band, linewidth=0)
+    #     if draw_pi:
+    #         ax.fill_between(out["xfit"], out["pi_lower"], out["pi_upper"],
+    #                         color=color, alpha=alpha_band * 0.5, linewidth=0)
+
+    #     return {
+    #         "a": out["a"],
+    #         "b": out["b"],
+    #         "r2_loglog": out["r2_loglog"],
+    #         "n": int(out["n"]),
+    #         "stderr_log": out["stderr"],
+    #         "tcrit": out["tcrit"],
+    #         "smearing": out["smearing"]
+    #     }
+
+    def _fit_and_plot(sub_df, label, color, lw=line_width, alpha_band=0.20):
         x = sub_df['biogas_production_used_kgCH4_per_hr'].to_numpy()
         y = sub_df['production_normalized_CH4_percent'].to_numpy()  # fraction 0–1
         m = np.isfinite(x) & np.isfinite(y) & (x > 0) & (y > 0)
-        x, y = x[m], y[m]
-        if x.size < 2:
+        x = x[m]; y = y[m]
+        if x.size < 3:
             return None
-        res = linregress(np.log(x), np.log(y))
-        b = float(res.slope)
-        a = float(np.exp(res.intercept))
-        r2 = float(res.rvalue**2)
+
         xfit = np.geomspace(x.min(), x.max(), 200)
-        yfit = a * xfit**b
-        a_tex_pct = _sci_tex(100 * a, 2)
-        eqn = rf"$y(\%) = {a_tex_pct}\,x^{{{b:.2f}}}$ (R$^2$={r2:.3f})"
-        # ax.plot(xfit, yfit, lw=line_width, color=color, label=f"Trend: {label} {eqn}")
-        ax.plot(xfit, yfit, lw=line_width, color=color, label="_nolegend_")
-        return {"a": a, "b": b, "r2_loglog": r2, "n": int(x.size)}
+        out = _powerlaw_fit_with_intervals(x, y, xfit=xfit, alpha=0.05, use_smearing=True)
+        if out is None:
+            return None
+
+        ax.plot(out["xfit"], out["yfit"], lw=lw, color=color, label="_nolegend_")
+        ax.fill_between(out["xfit"], out["ci_lower"], out["ci_upper"],
+                        color=color, alpha=alpha_band, linewidth=0, label="_nolegend_")
+
+        ci_label = f"{label} – 95% CI"
+        ci_patch = mpatches.Patch(facecolor=color, edgecolor='none', alpha=alpha_band, label=ci_label)
+        ax._ci_legend_entries.append((ci_patch, ci_label))
+
+        return {
+            "a": out["a"], "b": out["b"], "r2_loglog": out["r2_loglog"],
+            "n": int(out["n"]), "stderr_log": out["stderr"],
+            "tcrit": out["tcrit"], "smearing": out["smearing"]
+        }
+
+
 
     # Subsets
     df_available = df[df['data_availability'] == 'Biogas data available']
@@ -356,14 +546,28 @@ def plot_prod_norm_vs_biogas_ax(
 
 
     # Legend 
+    # handles, labels = ax.get_legend_handles_labels()
+    # seen = set(); new_h, new_l = [], []
+    # for h, l in zip(handles, labels):
+    #     if l not in seen and l != "_nolegend_":
+    #         new_h.append(h); new_l.append(l); seen.add(l)
+   
+    # ax.legend(new_h, new_l)
+    # ax.legend(fontsize=13)
+    
     handles, labels = ax.get_legend_handles_labels()
     seen = set(); new_h, new_l = [], []
     for h, l in zip(handles, labels):
         if l not in seen and l != "_nolegend_":
             new_h.append(h); new_l.append(l); seen.add(l)
-   
-    ax.legend(new_h, new_l)
-    ax.legend(fontsize=13)
+
+    # add CI patches (one per group, de-duplicated)
+    for patch, lab in getattr(ax, "_ci_legend_entries", []):
+        if lab not in seen:
+            new_h.append(patch); new_l.append(lab); seen.add(lab)
+
+    ax.legend(new_h, new_l, fontsize=13, frameon=False, handlelength=1.5, handletextpad=0.5)
+
 
     # Labels and spine settings 
     ax.set_xlabel("Biogas production rate (kg CH₄/hr)", fontsize=16)
@@ -390,9 +594,9 @@ def main():
 
     # palettes & labels for left plot
     group_label_map = {'yes': 'Anaerobic digestion', 
-                       'no': 'No Anaerobic digestion'}
+                       'no': 'No anaerobic digestion'}
     palette_left = {'Anaerobic digestion': '#1f77b4', 
-                    'No Anaerobic digestion': '#ff7f0e'}
+                    'No anaerobic digestion': '#ff7f0e'}
 
     fig, axes = plt.subplots(1, 2, figsize=(17, 7))
 
