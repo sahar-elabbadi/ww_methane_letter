@@ -124,6 +124,7 @@ def make_eia_industrial_ng_2023():
     4) Save CSV to 02_clean_data/eia_industrial_tariffs_natural_gas_2023.csv
     5) Return dataframe
     """
+    # Manual insert for DC electricity value based on their provider 
     dc_rate_per_therm = 0.40 # According to rates provided by Washington Gas, saved in 01_raw_data > DC_natural_gas_prices.pdf
 
     # 1) Load the data
@@ -132,13 +133,13 @@ def make_eia_industrial_ng_2023():
     # 2) Convert to $/MJ
     df["Price ($/MJ)"] = pd.to_numeric(df["Price ($/Mscf)"], errors="coerce") / MSCF_TO_MJ
 
-    # 3) Insert DC from $/therm if missing (or fill its $/MJ if present but NaN)
-    dc_mj = dc_rate_per_therm / THERM_TO_MJ
-    is_dc = df["State"].astype(str).str.upper().isin(["DC", "DISTRICT OF COLUMBIA"])
+    # 3) Insert manually selected rate for DC into the main dataframe
+    dc_mj = dc_rate_per_therm / THERM_TO_MJ # Unit conversion to $ / MJ 
+    is_dc = df["State"].astype(str).str.upper().isin(["DC", "DISTRICT OF COLUMBIA"]) # Find row with DC, check for variations in naming
     if is_dc.any():
         df.loc[is_dc, "Price ($/MJ)"] = df.loc[is_dc, "Price ($/MJ)"].fillna(dc_mj)
     else:
-        # match your naming convention (abbr if others are abbrs)
+        # Match rest of dataframe naming convention (abbreviation vs full name) 
         use_abbr = df["State"].astype(str).map(len).eq(2).any()
         dc_name = "DC" if use_abbr else "District of Columbia"
         df = pd.concat(
@@ -146,7 +147,7 @@ def make_eia_industrial_ng_2023():
             ignore_index=True,
         )
 
-    # 4) Save the spreadsheet (same pattern as your electricity code)
+    # 4) Save the spreadsheet in clean data directory 
     out_path = pathlib.Path("02_clean_data", "eia_industrial_tariffs_natural_gas_2023.csv")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     eia_industrial_tariffs_2023_df = (
@@ -154,14 +155,15 @@ def make_eia_industrial_ng_2023():
     )
     eia_industrial_tariffs_2023_df.to_csv(out_path)
 
-    # 5) Dict for use elsewhere (mirrors your electricity code)
-    eia_industrial_tariffs_2023 = eia_industrial_tariffs_2023_df["Price ($/MJ)"].to_dict()
+    # 5) Dict for use elsewhere as needed
+    # eia_industrial_tariffs_2023 = eia_industrial_tariffs_2023_df["Price ($/MJ)"].to_dict()
 
     return eia_industrial_tariffs_2023_df
 
 # Load EIA natural gas data and process 
 eia_industrial_natural_gas_2023_df = make_eia_industrial_ng_2023()
 
+# Make dictionary for use elsewhere as needed 
 eia_industrial_natural_gas_2023 = eia_industrial_natural_gas_2023_df['Price ($/MJ)'].to_dict() # for use elsewhere in script
 
 ####### FACILITY DATA FROM EL ABBADI, FENG ET AL 2025 #########

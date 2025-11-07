@@ -298,6 +298,51 @@ print(measurement_data_has_biogas_data["production_normalized_CH4_percent"].head
 print(f'Average leak rate for facilities with reported biogas production: {measurement_data_has_biogas_data["production_normalized_CH4_percent"].mean():.2%}')
 print(f'Range of leak rates for facilities with reported biogas production: {measurement_data_has_biogas_data["production_normalized_CH4_percent"].min():.2%} - {measurement_data_has_biogas_data["production_normalized_CH4_percent"].max():.2%} ')
 
+#%%
+# What fraction of facilities in the US have flow up to 1.6 Mm3/day? 
+# chp_data, wwtp_data loaded earlier
+
+flow_threshold_m3_per_day = 1_600_000  # 1.6 Mm3/day
+num_facilities_below_threshold_chp = chp_data[chp_data['flow_m3_per_day'] <= flow_threshold_m3_per_day].shape[0]
+total_chp_facilities = chp_data.shape[0]
+fraction_below_threshold = num_facilities_below_threshold_chp / total_chp_facilities
+print(f"Fraction of CHP facilities with flow up to {flow_threshold_m3_per_day/1e6:.1f} Mm3/day: {fraction_below_threshold:.2%} ({num_facilities_below_threshold_chp} out of {total_chp_facilities})")
+
+num_facilities_below_threshold_all = wwtp_data[wwtp_data['flow_m3_per_day'] <= flow_threshold_m3_per_day].shape[0]
+total_facilities = wwtp_data.shape[0]
+fraction_below_threshold = num_facilities_below_threshold_all / total_facilities
+print(f"Fraction of U.S. facilities with flow up to {flow_threshold_m3_per_day/1e6:.1f} Mm3/day: {fraction_below_threshold:.2%} ({num_facilities_below_threshold_all} out of {total_facilities})")
+
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(6, 5))
+
+# Prepare the data in Mm³/day
+data = [
+    wwtp_data['flow_m3_per_day'] / 1e6,
+    chp_data['flow_m3_per_day'] / 1e6
+]
+
+# Create the boxplot
+plt.boxplot(data, labels=['All facilities', 'CHP facilities'], patch_artist=True,
+            boxprops=dict(facecolor='lightgray', alpha=0.7),
+            medianprops=dict(color='black'),
+            whiskerprops=dict(color='gray'),
+            capprops=dict(color='gray'))
+
+# Add threshold line
+flow_threshold = 1.6
+plt.axhline(flow_threshold, color='red', linestyle='--', label=f'Threshold = {flow_threshold} Mm³/day')
+
+# Label and format
+plt.ylabel('Flow (Mm³/day)')
+plt.title('Flow Distribution: All vs. CHP Facilities')
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+
+
 
 #%% 
 # Mean and SD of production normalized CH4 leak rates (percent): 
