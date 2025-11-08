@@ -293,9 +293,11 @@ plt.show()
 ########## Section: Economic opportunities from leak repairs #######
 
 measurement_data_has_biogas_data = measurement_data_ad_filt[measurement_data_ad_filt['reported_biogas_production']=='yes']
-print(measurement_data_has_biogas_data["production_normalized_CH4_percent"].head())
+# print(measurement_data_has_biogas_data["production_normalized_CH4_percent"].head())
 # Range of production normalized CH4 leaks (percent)
 print(f'Average leak rate for facilities with reported biogas production: {measurement_data_has_biogas_data["production_normalized_CH4_percent"].mean():.2%}')
+print(f'Median leak rate for facilities with reported biogas production: {measurement_data_has_biogas_data["production_normalized_CH4_percent"].median():.2%}')
+
 print(f'Range of leak rates for facilities with reported biogas production: {measurement_data_has_biogas_data["production_normalized_CH4_percent"].min():.2%} - {measurement_data_has_biogas_data["production_normalized_CH4_percent"].max():.2%} ')
 
 #%%
@@ -313,34 +315,11 @@ total_facilities = wwtp_data.shape[0]
 fraction_below_threshold = num_facilities_below_threshold_all / total_facilities
 print(f"Fraction of U.S. facilities with flow up to {flow_threshold_m3_per_day/1e6:.1f} Mm3/day: {fraction_below_threshold:.2%} ({num_facilities_below_threshold_all} out of {total_facilities})")
 
-import matplotlib.pyplot as plt
+flow_threshold_m3_per_day = 500_000  # 0.5 Mm3/day
 
-plt.figure(figsize=(6, 5))
-
-# Prepare the data in Mm³/day
-data = [
-    wwtp_data['flow_m3_per_day'] / 1e6,
-    chp_data['flow_m3_per_day'] / 1e6
-]
-
-# Create the boxplot
-plt.boxplot(data, labels=['All facilities', 'CHP facilities'], patch_artist=True,
-            boxprops=dict(facecolor='lightgray', alpha=0.7),
-            medianprops=dict(color='black'),
-            whiskerprops=dict(color='gray'),
-            capprops=dict(color='gray'))
-
-# Add threshold line
-flow_threshold = 1.6
-plt.axhline(flow_threshold, color='red', linestyle='--', label=f'Threshold = {flow_threshold} Mm³/day')
-
-# Label and format
-plt.ylabel('Flow (Mm³/day)')
-plt.title('Flow Distribution: All vs. CHP Facilities')
-plt.legend()
-plt.tight_layout()
-plt.show()
-
+num_facilities_above_threshold_chp = chp_data[chp_data['flow_m3_per_day'] >= flow_threshold_m3_per_day].shape[0]
+fraction_below_threshold = num_facilities_above_threshold_chp / total_chp_facilities
+print(f"Fraction of CHP facilities with flow over {flow_threshold_m3_per_day/1e6:.1f} Mm3/day: {fraction_below_threshold:.2%} ({num_facilities_above_threshold_chp} out of {total_chp_facilities})")
 
 
 
@@ -352,7 +331,6 @@ std_leak_rate = measurement_data_has_biogas_data['production_normalized_CH4_perc
 print(f'Median leak rate: {median_leak_rate:.2%}, Standard deviation: {std_leak_rate:.2%}')
 
 # What leak fraction is needed to offset OGI costs for a "large" facility of 0.5 Mm3/day? 
-
 
 target_annual = 100_000  # USD/year
 plant_size = 500_000  # m³/day
