@@ -521,7 +521,7 @@ print(f"${ogi_annualized_cost:,.2f}")
 #%% 
 import pathlib 
 import pandas as pd
-dkk_per_usd_2021 = pd.read_excel(pathlib.PurePath('01_raw_data','fred_danish_kroner_to_usd.xls'))
+dkk_per_usd_2021 = pd.read_excel(pathlib.PurePath('01_raw_data','danish_kroner_to_usd.xls'))
 print(f"Average DKK per USD in 2021: {dkk_per_usd_2021['DEXDNUS'].mean():.2f}")
 
 repair_costs_dkk_low = 100_000
@@ -536,3 +536,24 @@ cpi_2023 = 304.702
 print(f"Low costs of repairs in 2023: ${repair_costs_dkk_low / dkk_per_usd_2021['DEXDNUS'].mean()*cpi_2023/cpi_2021:,.2f} ")
 print(f"Low costs of repairs in 2023: ${repair_costs_dkk_high / dkk_per_usd_2021['DEXDNUS'].mean()*cpi_2023/cpi_2021:,.2f} ")
 #%%
+usd_per_eu_2023 = pd.read_excel(pathlib.PurePath('01_raw_data','EU_to_USD.xls'))
+print(f"Average DKK per USD in 2023: {usd_per_eu_2023['DEXUSEU'].mean():.2f}")
+
+# Hurtig et al 2025 Table 2, currency year assumed to be 2023 based on timeline of paper submission in early 2024
+# Cost of repairing connection From Hurtig et al 2025, Table 2
+repair_costs_eu_connections_low = 10
+repair_costs_eu_connections_high = 300
+print(f"Low costs of connection repairs in 2023: ${repair_costs_eu_connections_low * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
+print(f"Low costs of repairs in 2023: ${repair_costs_eu_connections_high * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
+
+# Cost of repairing flanges From Hurtig et al 2025, Table 2
+repair_costs_eu__flanges_low = 25
+repair_costs_eu__flanges_high = 1000
+print(f"Low costs of flange repairs in 2023: ${repair_costs_eu__flanges_low * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
+print(f"Low costs of flange repairs in 2023: ${repair_costs_eu__flanges_high * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
+
+# Cost of repairing dome From Hurtig et al 2025, Table 2
+repair_costs_eu__dome_low = 30_000
+repair_costs_eu__flanges_high = 35_000
+print(f"Low costs of AD dome repairs in 2023: ${repair_costs_eu__flanges_low * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
+print(f"Low costs of AD dome repairs in 2023: ${repair_costs_eu__flanges_high * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")

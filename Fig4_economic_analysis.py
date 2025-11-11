@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.colors as mcolors
 from matplotlib.gridspec import GridSpec
+from matplotlib.ticker import FuncFormatter, MaxNLocator
 import pathlib
 from c_plotting_functions import plot_methane_savings_vary_leak_rate, plot_methane_savings_vary_capturable
 from a_my_utilities import Engine, ENGINES
@@ -38,31 +39,26 @@ shared_cmap = mcolors.LinearSegmentedColormap.from_list('custom_map', [o, y, g, 
 shared_norm = mcolors.BoundaryNorm(levels_fill, ncolors=shared_cmap.N, clip=True)
 
 ####### Set up figure #######
-fig = plt.figure(figsize=(15, 14))
+fig = plt.figure(figsize=(15, 15))
 
-# Choose bottom subgrid main vs strip heights
-MAIN, STRIP = 12, 2           # your current values
-s = MAIN / (MAIN + STRIP)     # fraction of bottom row given to the main panel
+# 3 rows: [top contours, bottom contours, thin strip row]
+STRIP_ROW = 0.24  # controls strip row height; tweak 0.20–0.30
+outer = fig.add_gridspec(3, 2, height_ratios=[1, 1, STRIP_ROW],
+                         hspace=0.08, wspace=0.05)
 
-# Make top row height == bottom main panel height
-outer = fig.add_gridspec(2, 2, height_ratios=[1, 1/s], hspace=0.05, wspace=0.05)
-
-# Top row
+# Top contour row
 ax00 = fig.add_subplot(outer[0, 0])
 ax01 = fig.add_subplot(outer[0, 1])
 
-# Bottom-left subgrid (main + box strip)
-gbl = outer[1, 0].subgridspec(2, 1, height_ratios=[MAIN, STRIP], hspace=0.22)
-ax10 = fig.add_subplot(gbl[0, 0], sharex=ax00)
-ax_box_left = fig.add_subplot(gbl[1, 0], sharex=ax10)
+# Bottom contour row (shares x with top optionally)
+ax10 = fig.add_subplot(outer[1, 0], sharex=ax00)
+ax11 = fig.add_subplot(outer[1, 1], sharex=ax01)
 
-# Bottom-right subgrid (main + box strip)
-gbr = outer[1, 1].subgridspec(2, 1, height_ratios=[MAIN, STRIP], hspace=0.22)
-ax11 = fig.add_subplot(gbr[0, 0], sharex=ax01)
-ax_box_right = fig.add_subplot(gbr[1, 0], sharex=ax11)
+# Strip row (box & whisker), share x with bottom contours
+ax_box_left  = fig.add_subplot(outer[2, 0], sharex=ax10)
+ax_box_right = fig.add_subplot(outer[2, 1], sharex=ax11)
 
 axes = np.array([[ax00, ax01], [ax10, ax11]])
-
 
 
 
@@ -211,9 +207,11 @@ for axb in [ax_box_left, ax_box_right]:
     # Styling so it reads as a small strip
     axb.set_ylim(0.5, 1.5)
     axb.set_yticks([])
-    axb.tick_params(axis='x', labelsize=12, length=5, width=1.5, direction='in', pad=4)
-    for spine in axb.spines.values():
-        spine.set_linewidth(2)
+    # hide frame
+    for s in axb.spines.values(): s.set_visible(False)
+    # no tick marks or labels here (labels live on bottom contour axes)
+    axb.tick_params(axis='x', bottom=False, top=False, labelbottom=False)
+    axb.set_xlabel(None)
 
 # Label x only on the strips (since we hid the labels on the main bottom panels)
 ax_box_left.set_xlabel("Plant size (m³/day)", fontsize=14)
@@ -234,49 +232,63 @@ for axb in [ax_box_left, ax_box_right]:
     for spine in axb.spines.values():
         spine.set_visible(False)
         
-    # Optional: remove ticks entirely for an ultra-clean look
+    # Remove ticks
     axb.tick_params(bottom=False, top=False)
 
 # --- Label below the box-and-whisker strip ---
-for axb in [ax_box_left, ax_box_right]:
-    label = "CHP facility flows"
+for axb in [ax_box_left]:
+    label = f"CHP Facility \nSize Distribution"
     axb.text(
-        0.5, .1,                     # centered horizontally, below the axis
+        -0.1, 1.2,                     # centered horizontally, below the axis
         label,
         transform=axb.transAxes,
         ha='center', va='top',
-        fontsize=13, color='black'
+        fontsize=16, color='black',
+        rotation=90
     )
+
+for axb in [ax_box_left, ax_box_right]:
+    label = "Plant Size (m³/day)"
+    axb.text(
+        0.5, 0.95,                     # centered horizontally, below the axis
+        label,
+        transform=axb.transAxes,
+        ha='center', va='top',
+        fontsize=16, color='black'
+    )
+
 
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 # === Format numbers on x-axis (for bottom row only) ===
-def _fmt_m3_day(x, pos):
-    if x >= 1_000_000:
-        return f"{x/1_000_000:.1f}M"
-    elif x >= 1_000:
-        return f"{x/1_000:.0f}k"
-    else:
-        return f"{int(x)}"
+from matplotlib.ticker import FuncFormatter, MaxNLocator
 
-# Shared x-limits across all main and box axes
+
+def _fmt_m3_day(x, pos):
+    if x >= 1_000_000: return f"{x/1_000_000:.1f}M"
+    if x >= 1_000:     return f"{x/1_000:.0f}k"
+    return f"{int(x)}"
+
+# same x-range everywhere
 for ax in [ax00, ax01, ax10, ax11, ax_box_left, ax_box_right]:
     ax.set_xlim(0, max_plant_size_m3_per_day)
 
-# ✅ Only bottom row gets x tick labels and formatter
-for ax in [ax10, ax11]:
-    ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
-    ax.xaxis.set_major_formatter(FuncFormatter(_fmt_m3_day))
-    ax.tick_params(axis='x', labelbottom=True, pad=4)
-    ax.set_xlabel("Plant size (m³/day)", fontsize=14, labelpad=2)
-
-# ❌ Hide x tick labels for the top row
+# Top contours: no x tick labels
 for ax in [ax00, ax01]:
     ax.tick_params(axis='x', labelbottom=False)
 
-# ❌ Hide x tick labels on box strips (so numbers appear only above them)
+# Bottom contours: SHOW x tick labels + xlabel (this is what you want)
+for ax in [ax10, ax11]:
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
+    ax.xaxis.set_major_formatter(FuncFormatter(_fmt_m3_day))
+    ax.tick_params(axis='x', labelbottom=True, pad=4, length=6, width=1.2, direction='in')
+    ax.set_xlabel("Plant size (m³/day)", fontsize=14, labelpad=6)
+
+# Strips carry the ticks + xlabel
 for axb in [ax_box_left, ax_box_right]:
-    axb.tick_params(axis='x', labelbottom=False)
+    axb.xaxis.set_major_locator(MaxNLocator(nbins=6))
+    axb.xaxis.set_major_formatter(FuncFormatter(_fmt_m3_day))
+    axb.tick_params(axis='x', bottom=False, top=False, labelbottom=False)
     axb.set_xlabel(None)
 
 
@@ -310,7 +322,9 @@ for label, ax in zip(panel_labels, [ax00, ax01, ax10, ax11]):
 
 
 
-plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.5)
+fig.subplots_adjust(left=0.08, right=0.98, top=0.97, bottom=0.10,
+                    wspace=0.05, hspace=0.05)
+
 plt.show()
 
 
