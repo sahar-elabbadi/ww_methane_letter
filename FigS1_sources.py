@@ -274,7 +274,7 @@ def plot_prod_norm_vs_biogas_ax(ax, df, color_palette, markers_dict, legend_cfg)
         ax.spines[side].set_visible(False)
 
     # Trendlines
-    ann_y0 = 0.98
+    ann_y0 = 0.8
     ann_step = 0.12
     i = 0  # counts only the lines we actually annotate
     
@@ -645,6 +645,11 @@ def plot_right(ax, df_right, color_by="data_availability", color_palette=COLOR_A
     ax.tick_params(labelsize=10)
 
     # Trendlines by availability color
+
+    # For annotation locations: 
+    ann_y0 = 0.80
+    ann_step = 0.14
+    i = 0
     for label, col in color_palette.items():
         sub = df[df[color_by] == label]
         fit = _powerlaw_fit(sub["biogas_production_used_kgCH4_per_hr"], sub["production_normalized_CH4_percent"])
@@ -652,6 +657,12 @@ def plot_right(ax, df_right, color_by="data_availability", color_palette=COLOR_A
         xv = np.geomspace(sub["biogas_production_used_kgCH4_per_hr"].min(),
                           sub["biogas_production_used_kgCH4_per_hr"].max(), 200)
         ax.plot(xv, fit["a"] * xv**fit["b"], lw=2, color=col)
+
+        # annotate
+        eq = rf"$y = {fit['a']:.2e}\;x^{{{fit['b']:.2f}}}$" + "\n" + rf"$R^2={fit['r2_loglog']:.3f}$"
+        y_slot = ann_y0 - i * ann_step
+        _annotate_fit(ax, eq, xy=(0.02, y_slot), color=col)
+        i += 1
 
     if title:
         ax.set_title(title, fontsize=13)

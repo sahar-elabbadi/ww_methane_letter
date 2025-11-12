@@ -127,6 +127,19 @@ t_stat_norm, p_val_norm = stats.ttest_ind(
 )
 print(f"T-test (kg/m3): t = {t_stat_norm:.3f}, p = {p_val_norm:.4f}")
 
+# What is the average size of facilities with AD and average size of facilities without AD? 
+print(f"\nHow do facility sizes compare?")
+print(f"Mean facility size for facilities with AD: {measurement_data_all_has_ad['flow_m3_per_day'].mean():,.2f} m3/day")
+print(f"Mean facility size for facilities witout AD: {measurement_data_all_no_ad['flow_m3_per_day'].mean():,.2f} m3/day")
+
+# t-test for normalized emissions (kg/m3)
+t_stat_norm, p_val_norm = stats.ttest_ind(
+    measurement_data_all_has_ad['flow_m3_per_day'].dropna(),
+    measurement_data_all_no_ad['flow_m3_per_day'].dropna(),
+    equal_var=False #Welch's t-test does not assume equal variance
+)
+print(f"T-test (kg/m3): t = {t_stat_norm:.3f}, p = {p_val_norm:.4f}")
+
 #%%
 ########## Discussion of Figure 2b #######
 
@@ -521,6 +534,8 @@ print(f"${ogi_annualized_cost:,.2f}")
 #%% 
 import pathlib 
 import pandas as pd
+
+# Fredenslund et al 2023 cost of repairs 
 dkk_per_usd_2021 = pd.read_excel(pathlib.PurePath('01_raw_data','danish_kroner_to_usd.xls'))
 print(f"Average DKK per USD in 2021: {dkk_per_usd_2021['DEXDNUS'].mean():.2f}")
 
@@ -544,16 +559,30 @@ print(f"Average DKK per USD in 2023: {usd_per_eu_2023['DEXUSEU'].mean():.2f}")
 repair_costs_eu_connections_low = 10
 repair_costs_eu_connections_high = 300
 print(f"Low costs of connection repairs in 2023: ${repair_costs_eu_connections_low * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
-print(f"Low costs of repairs in 2023: ${repair_costs_eu_connections_high * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
+print(f"High costs of repairs in 2023: ${repair_costs_eu_connections_high * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
 
 # Cost of repairing flanges From Hurtig et al 2025, Table 2
 repair_costs_eu__flanges_low = 25
 repair_costs_eu__flanges_high = 1000
 print(f"Low costs of flange repairs in 2023: ${repair_costs_eu__flanges_low * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
-print(f"Low costs of flange repairs in 2023: ${repair_costs_eu__flanges_high * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
+print(f"High costs of flange repairs in 2023: ${repair_costs_eu__flanges_high * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
 
 # Cost of repairing dome From Hurtig et al 2025, Table 2
 repair_costs_eu__dome_low = 30_000
-repair_costs_eu__flanges_high = 35_000
-print(f"Low costs of AD dome repairs in 2023: ${repair_costs_eu__flanges_low * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
-print(f"Low costs of AD dome repairs in 2023: ${repair_costs_eu__flanges_high * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
+repair_costs_eu__dome_high = 35_000
+print(f"Low costs of AD dome repairs in 2023: ${repair_costs_eu__dome_low * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
+print(f"High costs of AD dome repairs in 2023: ${repair_costs_eu__dome_high * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
+
+
+# Cost of repairing gas storage From Hurtig et al 2025, Table 2
+repair_costs_eu__storage_low = 15_000
+repair_costs_eu__storage_high = 25_000
+print(f"Low costs of membrane storage repairs in 2023: ${repair_costs_eu__storage_low * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
+print(f"High costs of membrane storage repairs in 2023: ${repair_costs_eu__storage_high * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
+
+
+# Cost of leak survey: 400 euro to 1200 euro 
+survey_cost_low = 400
+survey_cost_high = 1200
+print(f"Survey cost low (IR camera, gas analyser, flow meters): ${survey_cost_low * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
+print(f"Survey cost high (OGI, tuneable diode laser, etc.): ${survey_cost_high * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
