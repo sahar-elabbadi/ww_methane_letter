@@ -74,12 +74,22 @@ measurement_data_ad["data_availability"] = (
 # Helpers
 # =========================
 
+# Helper function for power law fit
 def _powerlaw_fit(x, y):
     logx, logy = np.log(x), np.log(y)
     res = linregress(logx, logy)
     return {"a": np.exp(res.intercept), "b": res.slope, "r2_loglog": res.rvalue**2}
 
+# Annotation for power law fit 
+def _annotate_fit(ax, text, xy=(0.02, 0.98), color="black", fs=10):
+    ax.text(
+        xy[0], xy[1], text,
+        transform=ax.transAxes, ha="left", va="top",
+        fontsize=fs, color=color,
+        bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor="none", alpha=0.7)
+    )
 
+# Percent formatter 
 def _percent_formatter(y, _):
     pct = y * 100
     if pct >= 1:
@@ -264,6 +274,10 @@ def plot_prod_norm_vs_biogas_ax(ax, df, color_palette, markers_dict, legend_cfg)
         ax.spines[side].set_visible(False)
 
     # Trendlines
+    ann_y0 = 0.98
+    ann_step = 0.12
+    i = 0  # counts only the lines we actually annotate
+    
     for label, color in color_palette.items():
         sub = data[data["data_availability"] == label]
         if len(sub) < 3:
@@ -278,6 +292,12 @@ def plot_prod_norm_vs_biogas_ax(ax, df, color_palette, markers_dict, legend_cfg)
             200,
         )
         ax.plot(xv, fit["a"] * xv ** fit["b"], lw=2.5, color=color, label="_nolegend_")
+
+        # annotate
+        eq = rf"$y = {fit['a']:.2e}\;x^{{{fit['b']:.2f}}}$" + "\n" + rf"$R^2={fit['r2_loglog']:.3f}$"
+        y_slot = ann_y0 - i * ann_step
+        _annotate_fit(ax, eq, xy=(0.02, y_slot), color=color)
+        i += 1
 
     _add_dual_legends(
         ax,
@@ -555,12 +575,24 @@ def plot_left(ax, df_left, color_by="ad_label", color_palette=COLOR_AD,
     ax.tick_params(labelsize=10)
 
     # Trendlines by AD color
+
+    # Set up annotation locations 
+    ann_y0 = 0.8
+    ann_step = 0.12
+    i = 0  # counts only the lines we actually annotate
+    
     for label, col in color_palette.items():
         sub = df[df[color_by] == label]
         fit = _powerlaw_fit(sub["flow_m3_per_day"], sub["ch4_kg_per_hr"])
         if fit is None: continue
         xv = np.geomspace(sub["flow_m3_per_day"].min(), sub["flow_m3_per_day"].max(), 200)
         ax.plot(xv, fit["a"] * xv**fit["b"], lw=2, color=col)
+
+        # annotate
+        eq = rf"$y = {fit['a']:.2e}\;x^{{{fit['b']:.2f}}}$" + "\n" + rf"$R^2={fit['r2_loglog']:.3f}$"
+        y_slot = ann_y0 - i * ann_step
+        _annotate_fit(ax, eq, xy=(0.02, y_slot), color=col)
+        i += 1
 
     if title:
         ax.set_title(title, fontsize=13)
