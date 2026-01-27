@@ -42,7 +42,7 @@ shared_norm = mcolors.BoundaryNorm(levels_fill, ncolors=shared_cmap.N, clip=True
 fig = plt.figure(figsize=(15, 15))
 
 # 3 rows: [top contours, bottom contours, thin strip row]
-STRIP_ROW = 0.24  # controls strip row height; tweak 0.20–0.30
+STRIP_ROW = 0.22  # controls strip row height; tweak 0.20–0.30
 outer = fig.add_gridspec(3, 2, height_ratios=[1, 1, STRIP_ROW],
                          hspace=0.08, wspace=0.05)
 
@@ -157,7 +157,7 @@ axes[1, 1].text(0.02, 0.04, "Leak rate: 15%", transform=axes[1, 1].transAxes, fo
 # Increase tick label size in all subplots
 for ax in axes.flat:
     
-    ax.tick_params(labelsize=14, direction='in', length=5, width=1.5, pad=6)
+    ax.tick_params(labelsize=16, direction='in', length=5, width=1.5, pad=6)
     
     for spine in ax.spines.values():
         spine.set_linewidth(2)  # thickness in points
@@ -188,7 +188,7 @@ for ax in [axes[1, 0], axes[1, 1]]:
 
 # ==== BOX & WHISKER STRIPS (CHP) ====
 flows_chp = chp_data['flow_m3_per_day'].to_numpy()
-# If you want to clip to plotted range so whiskers don't extend beyond:
+# Clip to plotted range so whiskers don't extend beyond:
 flows_for_plot = np.clip(flows_chp, 0, max_plant_size_m3_per_day)
 
 for axb in [ax_box_left, ax_box_right]:
@@ -220,9 +220,9 @@ ax_box_right.set_xlabel("Plant size (m³/day)", fontsize=18)
 # Keep y on left column only (optional)
 ax_box_right.set_ylabel(None)
 
-# Do your existing tick/label styling for main panels...
+# Tick/label styling for main panels
 for ax in axes.flat:
-    ax.tick_params(labelsize=14, direction='in', length=6, width=1.5, pad=6)
+    ax.tick_params(labelsize=16, direction='in', length=6, width=1.5, pad=6)
     for spine in ax.spines.values():
         spine.set_linewidth(2)
 
@@ -277,12 +277,12 @@ for ax in [ax00, ax01, ax10, ax11, ax_box_left, ax_box_right]:
 for ax in [ax00, ax01]:
     ax.tick_params(axis='x', labelbottom=False)
 
-# Bottom contours: SHOW x tick labels + xlabel (this is what you want)
+# Bottom contours: SHOW x tick labels + xlabel 
 for ax in [ax10, ax11]:
     ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
     ax.xaxis.set_major_formatter(FuncFormatter(_fmt_m3_day))
     ax.tick_params(axis='x', labelbottom=True, pad=4, length=6, width=1.2, direction='in')
-    ax.set_xlabel("Plant size (m³/day)", fontsize=14, labelpad=6)
+    ax.set_xlabel("Plant size (m³/day)", fontsize=18, labelpad=6)
 
 # Strips carry the ticks + xlabel
 for axb in [ax_box_left, ax_box_right]:
@@ -293,11 +293,11 @@ for axb in [ax_box_left, ax_box_right]:
 
 
 for ax in axes.flat:
-    ax.set_xlabel(ax.get_xlabel(), fontsize=16)  # bump x-axis label font size
-    ax.set_ylabel(ax.get_ylabel(), fontsize=16)  # bump y-axis label font size
+    ax.set_xlabel(ax.get_xlabel(), fontsize=18)  # bump x-axis label font size
+    ax.set_ylabel(ax.get_ylabel(), fontsize=18)  # bump y-axis label font size
 
 for ax in axes.flat:
-    ax.tick_params(axis="both", which="major", labelsize=14, length=6, width=1.5, direction="in", pad=6)
+    ax.tick_params(axis="both", which="major", labelsize=16, length=6, width=1.5, direction="in", pad=6)
 
 
 

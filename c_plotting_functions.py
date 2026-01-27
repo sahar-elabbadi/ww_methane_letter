@@ -38,7 +38,7 @@ def plot_methane_savings_vary_leak_rate(
     title=False          # <- optional custom title
 ):
     """
-    Returns a methane savings contour plot (Jianan-style) using user's methane functions.
+    Returns a methane savings contour plot (Jianan-style) where leak rate varies along the Y-axis.
     """
     # Grid
     plant_sizes = np.linspace(*plant_sizes_m3_per_day_range, resolution)
