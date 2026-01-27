@@ -9,7 +9,9 @@ import json
 import matplotlib.ticker as mtick
 from scipy import stats
 import matplotlib.patches as mpatches
-
+from matplotlib.legend_handler import HandlerPatch
+from matplotlib.lines import Line2D
+from matplotlib.patches import Rectangle
 
 from a_my_utilities import (
     load_ch4_emissions_data,
@@ -237,6 +239,41 @@ def print_trendline_results(title, coeffs_like, percent=False):
         print(f"{label}: {eqn}")
 
 
+# For legend patches with line through the middle 
+
+class HandlerPatchWithCenterLine(HandlerPatch):
+    """Legend handler that draws a filled patch + a solid center line over it."""
+    def __init__(self, line_lw=2.5, line_color=None, **kwargs):
+        super().__init__(**kwargs)
+        self.line_lw = line_lw
+        self.line_color = line_color  # if None, use patch facecolor
+
+    def create_artists(self, legend, orig_handle, xdescent, ydescent,
+                       width, height, fontsize, trans):
+        # the shaded rectangle
+        rect = Rectangle(
+            (xdescent, ydescent), width, height,
+            facecolor=orig_handle.get_facecolor(),
+            edgecolor="none",
+            alpha=orig_handle.get_alpha(),
+            transform=trans,
+        )
+
+        # solid line through the middle
+        ymid = ydescent + 0.5 * height
+        color = self.line_color if self.line_color is not None else orig_handle.get_facecolor()
+        line = Line2D(
+            [xdescent, xdescent + width], [ymid, ymid],
+            color=color,
+            linewidth=self.line_lw,
+            alpha=1.0,
+            solid_capstyle="butt",
+            transform=trans,
+        )
+
+        return [rect, line]
+
+
 # =========================
 # Plot 1 (left): Emissions vs Flow (log–log)
 # =========================
@@ -310,34 +347,6 @@ def plot_emissions_vs_flow_ax(
             return palette[label]
         return fallback
 
-    # def _fit_and_plot(x, y, label, color, lw=linewidth, alpha_band=0.20, draw_pi=False):
-    #     # Compute fit and intervals on the same x-range we plot
-    #     xv = np.asarray(x, dtype=float)
-    #     xfit = np.geomspace(np.nanmin(xv[xv > 0]), np.nanmax(xv), 200)
-
-    #     out = _powerlaw_fit_with_intervals(x, y, xfit=xfit, alpha=0.05, use_smearing=True)
-    #     if out is None:
-    #         return None
-
-    #     ax.plot(out["xfit"], out["yfit"], linewidth=lw, color=color, label="_nolegend_")
-    #     # Confidence band
-    #     ax.fill_between(out["xfit"], out["ci_lower"], out["ci_upper"],
-    #                     color=color, alpha=alpha_band, linewidth=0)
-    #     # Optional prediction band (wider)
-    #     if draw_pi:
-    #         ax.fill_between(out["xfit"], out["pi_lower"], out["pi_upper"],
-    #                         color=color, alpha=alpha_band * 0.5, linewidth=0)
-
-    #     # Return everything so you can export/use later if desired
-    #     return {
-    #         "model": "power",
-    #         "a": out["a"],
-    #         "b": out["b"],
-    #         "r2_loglog": out["r2_loglog"],
-    #         "stderr_log": out["stderr"],
-    #         "tcrit": out["tcrit"],
-    #         "smearing": out["smearing"]
-    #     }
 
     def _fit_and_plot(x, y, label, color, lw=linewidth, alpha_band=0.20):
         xv = np.asarray(x, dtype=float)
@@ -354,7 +363,7 @@ def plot_emissions_vs_flow_ax(
                         color=color, alpha=alpha_band, linewidth=0, label="_nolegend_")
 
         # per-group legend patch for CI
-        ci_label = f"{label} – 95% CI"
+        ci_label = f"{label} fit (95% CI)"
         ci_patch = mpatches.Patch(facecolor=color, edgecolor='none', alpha=alpha_band, label=ci_label)
         ax._ci_legend_entries.append((ci_patch, ci_label))
 
@@ -410,7 +419,19 @@ def plot_emissions_vs_flow_ax(
         if lab not in seen:
             new_h.append(patch); new_l.append(lab); seen.add(lab)
 
-    ax.legend(new_h, new_l, fontsize=13, frameon=False, handlelength=1.5, handletextpad=0.5)
+    # ax.legend(new_h, new_l, fontsize=13, frameon=False, handlelength=1.5, handletextpad=0.5)
+
+    # add CI patches (one per group, de-duplicated)
+    for patch, lab in getattr(ax, "_ci_legend_entries", []):
+        if lab not in seen:
+            new_h.append(patch); new_l.append(lab); seen.add(lab)
+
+    handler_map = {patch: HandlerPatchWithCenterLine(line_lw=2) # <-- Adjust line thickness in legend patch
+                for patch, _ in getattr(ax, "_ci_legend_entries", [])}
+
+    ax.legend(new_h, new_l, fontsize=13, frameon=False, handlelength=1.5,
+            handletextpad=0.5, handler_map=handler_map)
+
 
 
     return {"model": "power", "coefficients": coeffs_out}
@@ -470,35 +491,6 @@ def plot_prod_norm_vs_biogas_ax(
     ax.set_yscale('log')
     ax.yaxis.set_major_formatter(_percent_formatter)
 
-    # def _fit_and_plot(sub_df, label, color, lw=line_width, alpha_band=0.20, draw_pi=False):
-    #     x = sub_df['biogas_production_used_kgCH4_per_hr'].to_numpy()
-    #     y = sub_df['production_normalized_CH4_percent'].to_numpy()  # fraction 0–1
-    #     m = np.isfinite(x) & np.isfinite(y) & (x > 0) & (y > 0)
-    #     x = x[m]; y = y[m]
-    #     if x.size < 3:
-    #         return None
-
-    #     xfit = np.geomspace(x.min(), x.max(), 200)
-    #     out = _powerlaw_fit_with_intervals(x, y, xfit=xfit, alpha=0.05, use_smearing=True)
-    #     if out is None:
-    #         return None
-
-    #     ax.plot(out["xfit"], out["yfit"], lw=lw, color=color, label="_nolegend_")
-    #     ax.fill_between(out["xfit"], out["ci_lower"], out["ci_upper"],
-    #                     color=color, alpha=alpha_band, linewidth=0)
-    #     if draw_pi:
-    #         ax.fill_between(out["xfit"], out["pi_lower"], out["pi_upper"],
-    #                         color=color, alpha=alpha_band * 0.5, linewidth=0)
-
-    #     return {
-    #         "a": out["a"],
-    #         "b": out["b"],
-    #         "r2_loglog": out["r2_loglog"],
-    #         "n": int(out["n"]),
-    #         "stderr_log": out["stderr"],
-    #         "tcrit": out["tcrit"],
-    #         "smearing": out["smearing"]
-    #     }
 
     def _fit_and_plot(sub_df, label, color, lw=line_width, alpha_band=0.20):
         x = sub_df['biogas_production_used_kgCH4_per_hr'].to_numpy()
@@ -517,7 +509,7 @@ def plot_prod_norm_vs_biogas_ax(
         ax.fill_between(out["xfit"], out["ci_lower"], out["ci_upper"],
                         color=color, alpha=alpha_band, linewidth=0, label="_nolegend_")
 
-        ci_label = f"{label} – 95% CI"
+        ci_label = f"{label} fit (95% CI)"
         ci_patch = mpatches.Patch(facecolor=color, edgecolor='none', alpha=alpha_band, label=ci_label)
         ax._ci_legend_entries.append((ci_patch, ci_label))
 
@@ -568,7 +560,17 @@ def plot_prod_norm_vs_biogas_ax(
         if lab not in seen:
             new_h.append(patch); new_l.append(lab); seen.add(lab)
 
-    ax.legend(new_h, new_l, fontsize=13, frameon=False, handlelength=1.5, handletextpad=0.5)
+    # ax.legend(new_h, new_l, fontsize=13, frameon=False, handlelength=1.5, handletextpad=0.5)
+
+    for patch, lab in getattr(ax, "_ci_legend_entries", []):
+        if lab not in seen:
+            new_h.append(patch); new_l.append(lab); seen.add(lab)
+
+    handler_map = {patch: HandlerPatchWithCenterLine(line_lw=2) # <-- Adjust line thickness in legend patch
+                for patch, _ in getattr(ax, "_ci_legend_entries", [])}
+
+    ax.legend(new_h, new_l, fontsize=13, frameon=False, handlelength=1.5,
+            handletextpad=0.5, handler_map=handler_map)
 
 
     # Labels and spine settings 
@@ -587,7 +589,7 @@ def plot_prod_norm_vs_biogas_ax(
 
 
 # =========================
-# Main: build combined figure with subplots
+# Main: make combined figure with subplots
 # =========================
 
 def main():

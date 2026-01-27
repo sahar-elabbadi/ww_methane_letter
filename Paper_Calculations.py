@@ -88,7 +88,7 @@ print(f"Chini R2: {r2:.4f}")
 
 from scipy import stats
 
-
+# Data setup 
 # calculate methane emissions per m3 wastewater treated 
 measurement_data['ch4_kg_per_m3'] = measurement_data['ch4_kg_per_hr'] / (measurement_data['flow_m3_per_day'] / 24)
 
@@ -97,27 +97,94 @@ measurement_data_all_has_ad = measurement_data[measurement_data['has_ad']=='yes'
 # facilities without AD
 measurement_data_all_no_ad = measurement_data[measurement_data['has_ad']=='no']
 
+
+print("Fig 2a: kg/hr emissions rate")
+
 # --- With AD ---
-print(f"Mean emissions rate for facilities with AD: {measurement_data_all_has_ad['ch4_kg_per_hr'].mean():.2f} kg/hr")
-print(f"Median emissions rate for facilities with AD: {measurement_data_all_has_ad['ch4_kg_per_hr'].median():.2f} kg/hr")
-print(f"Std Dev emissions rate for facilities with AD: {measurement_data_all_has_ad['ch4_kg_per_hr'].std():.2f} kg/hr\n")
+print("Facilities with AD:")
+with_ad_mean = measurement_data_all_has_ad['ch4_kg_per_hr'].mean()
+with_ad_median = measurement_data_all_has_ad['ch4_kg_per_hr'].median()
+with_ad_std = measurement_data_all_has_ad['ch4_kg_per_hr'].std() 
+print(f"Mean emissions rate for facilities with AD: {with_ad_mean:.2f} kg/hr")
+print(f"Median emissions rate for facilities with AD: {with_ad_median:.2f} kg/hr")
+print(f"Std Dev emissions rate for facilities with AD: {with_ad_std:.2f} kg/hr")
+
+# print(f"Mean emissions rate for facilities with AD: {measurement_data_all_has_ad['ch4_kg_per_hr'].mean():.2f} kg/hr")
+# print(f"Median emissions rate for facilities with AD: {measurement_data_all_has_ad['ch4_kg_per_hr'].median():.2f} kg/hr")
+# print(f"Std Dev emissions rate for facilities with AD: {measurement_data_all_has_ad['ch4_kg_per_hr'].std():.2f} kg/hr\n")
+
+# Parameters for 95% Confidence Interval calculations
+C = 0.95 # 95% confidence interval
+z = 1.95996 # z-score for 95% confidence interval, Hazra et al 2017
+
+# Calculations for 95% CI for facilities with AD 
+with_ad_sem = measurement_data_all_has_ad['ch4_kg_per_hr'].sem()  # Standard error of the mean
+with_ad_CI_low = with_ad_mean - z * with_ad_sem
+with_ad_CI_upper = with_ad_mean + z * with_ad_sem 
+print(f"95% Confidence interval for facilities with AD: ({with_ad_CI_low:.2f}, {with_ad_CI_upper:.2f}) kg/hr\n")
+
 
 # --- Without AD ---
+print("Facilities without AD:")
+
 print(f"Mean emissions rate for facilities without AD: {measurement_data_all_no_ad['ch4_kg_per_hr'].mean():.2f} kg/hr")
 print(f"Median emissions rate for facilities without AD: {measurement_data_all_no_ad['ch4_kg_per_hr'].median():.2f} kg/hr")
-print(f"Std Dev emissions rate for facilities without AD: {measurement_data_all_no_ad['ch4_kg_per_hr'].std():.2f} kg/hr\n")
+print(f"Std Dev emissions rate for facilities without AD: {measurement_data_all_no_ad['ch4_kg_per_hr'].std():.2f} kg/hr")
 
+# Calculations for 95% CI for facilities without AD 
+no_ad_sem = measurement_data_all_no_ad['ch4_kg_per_hr'].sem()  # Standard error of the mean
+no_ad_CI_low = measurement_data_all_no_ad['ch4_kg_per_hr'].mean() - z * no_ad_sem
+no_ad_CI_upper = measurement_data_all_no_ad['ch4_kg_per_hr'].mean() + z * no_ad_sem
+
+print(f"95% Confidence interval for facilities without AD: ({no_ad_CI_low:.4f}, {no_ad_CI_upper:.4f}) kg/hr\n")
+
+######## Normalized by flow rate ##########
 # Add normalized emissions column (kg CH4 per m3 wastewater)
 
+print("Fig 2a: kg/m3 emissions rate")
 # --- With AD ---
-print(f"Mean normalized emissions for facilities with AD: {measurement_data_all_has_ad['ch4_kg_per_m3'].mean():.4f} kg/m3")
-print(f"Median normalized emissions for facilities with AD: {measurement_data_all_has_ad['ch4_kg_per_m3'].median():.4f} kg/m3")
-print(f"Std Dev normalized emissions for facilities with AD: {measurement_data_all_has_ad['ch4_kg_per_m3'].std():.4f} kg/m3\n")
+print("Facilities with AD:")
+# print(f"Mean normalized emissions for facilities with AD: {measurement_data_all_has_ad['ch4_kg_per_m3'].mean():.4f} kg/m3")
+# print(f"Median normalized emissions for facilities with AD: {measurement_data_all_has_ad['ch4_kg_per_m3'].median():.4f} kg/m3")
+# print(f"Std Dev normalized emissions for facilities with AD: {measurement_data_all_has_ad['ch4_kg_per_m3'].std():.4f} kg/m3\n")
+
+with_ad_mean = measurement_data_all_has_ad['ch4_kg_per_m3'].mean()
+with_ad_median = measurement_data_all_has_ad['ch4_kg_per_m3'].median()
+with_ad_std = measurement_data_all_has_ad['ch4_kg_per_m3'].std() 
+print(f"Mean normalized emissions for facilities with AD: {with_ad_mean:.4f} kg/m3")
+print(f"Median normalized emissions for facilities with AD: {with_ad_median:.4f} kg/m3")
+print(f"Std Dev normalized emissions for facilities with AD: {with_ad_std:.4f} kg/m3\n")
+
+# Calculations for 95% CI for facilities with AD 
+with_ad_sem = measurement_data_all_has_ad['ch4_kg_per_m3'].sem()  # Standard error of the mean
+with_ad_CI_low = with_ad_mean - z * with_ad_sem
+with_ad_CI_upper = with_ad_mean + z * with_ad_sem 
+
+print(f"95% Confidence interval for facilities with AD: ({with_ad_CI_low:.4f}, {with_ad_CI_upper:.4f}) kg/m3\n")
+
 
 # --- Without AD ---
-print(f"Mean normalized emissions for facilities without AD: {measurement_data_all_no_ad['ch4_kg_per_m3'].mean():.4f} kg/m3")
-print(f"Median normalized emissions for facilities without AD: {measurement_data_all_no_ad['ch4_kg_per_m3'].median():.4f} kg/m3")
-print(f"Std Dev normalized emissions for facilities without AD: {measurement_data_all_no_ad['ch4_kg_per_m3'].std():.4f} kg/m3")
+print("Facilities without AD:")
+no_ad_mean = measurement_data_all_no_ad['ch4_kg_per_m3'].mean()
+no_ad_median = measurement_data_all_no_ad['ch4_kg_per_m3'].median()
+no_ad_std = measurement_data_all_no_ad['ch4_kg_per_m3'].std() 
+print(f"Mean normalized emissions for facilities without AD: {no_ad_mean:.4f} kg/m3")
+print(f"Median normalized emissions for facilities without AD: {no_ad_median:.4f} kg/m3")
+print(f"Std Dev normalized emissions for facilities without AD: {no_ad_std:.4f} kg/m3\n")
+
+# Calculations for 95% CI for facilities without AD 
+no_ad_sem = measurement_data_all_no_ad['ch4_kg_per_m3'].sem()  # Standard error of the mean
+no_ad_CI_low = no_ad_mean - z * no_ad_sem
+no_ad_CI_upper = no_ad_mean + z * no_ad_sem 
+
+print(f"95% Confidence interval for facilities without AD: ({no_ad_CI_low:.4f}, {no_ad_CI_upper:.4f}) kg/m3\n")
+
+# print(f"Mean normalized emissions for facilities without AD: {measurement_data_all_no_ad['ch4_kg_per_m3'].mean():.4f} kg/m3")
+# print(f"Median normalized emissions for facilities without AD: {measurement_data_all_no_ad['ch4_kg_per_m3'].median():.4f} kg/m3")
+# print(f"Std Dev normalized emissions for facilities without AD: {measurement_data_all_no_ad['ch4_kg_per_m3'].std():.4f} kg/m3")
+
+#%%
+########## Statistical Testing ##########
 
 # t-test for normalized emissions (kg/m3)
 t_stat_norm, p_val_norm = stats.ttest_ind(
