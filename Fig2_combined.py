@@ -327,8 +327,8 @@ def plot_emissions_vs_flow_ax(
 
     ax.set_xscale('log')
     ax.set_yscale('log')
-    ax.set_xlabel("Flow (m³/day)", fontsize=16)
-    ax.set_ylabel("CH₄ Emissions (kg/hr)", fontsize=16)
+    ax.set_xlabel("Flow (m³/day)", fontsize=18)
+    ax.set_ylabel("CH₄ Emissions (kg/hr)", fontsize=18)
     
     # Spine settings 
     ax.spines["top"].set_visible(False)
@@ -337,7 +337,7 @@ def plot_emissions_vs_flow_ax(
     ax.spines["left"].set_linewidth(2)
     # ax.grid(True, which='both', linestyle='--', linewidth=0.5)
 
-    ax.tick_params(axis="both", which="major", direction="in", length=6, width=1, labelsize=14, pad=8)
+    ax.tick_params(axis="both", which="major", direction="in", length=6, width=1, labelsize=16, pad=8)
     ax.tick_params(axis="both", which="minor", direction="in", length=3)
 
     coeffs_out = {}
@@ -419,8 +419,6 @@ def plot_emissions_vs_flow_ax(
         if lab not in seen:
             new_h.append(patch); new_l.append(lab); seen.add(lab)
 
-    # ax.legend(new_h, new_l, fontsize=13, frameon=False, handlelength=1.5, handletextpad=0.5)
-
     # add CI patches (one per group, de-duplicated)
     for patch, lab in getattr(ax, "_ci_legend_entries", []):
         if lab not in seen:
@@ -429,7 +427,7 @@ def plot_emissions_vs_flow_ax(
     handler_map = {patch: HandlerPatchWithCenterLine(line_lw=2) # <-- Adjust line thickness in legend patch
                 for patch, _ in getattr(ax, "_ci_legend_entries", [])}
 
-    ax.legend(new_h, new_l, fontsize=13, frameon=False, handlelength=1.5,
+    ax.legend(new_h, new_l, fontsize=14, frameon=False, handlelength=1.5,
             handletextpad=0.5, handler_map=handler_map)
 
 
@@ -540,14 +538,6 @@ def plot_prod_norm_vs_biogas_ax(
 
 
     # Legend 
-    # handles, labels = ax.get_legend_handles_labels()
-    # seen = set(); new_h, new_l = [], []
-    # for h, l in zip(handles, labels):
-    #     if l not in seen and l != "_nolegend_":
-    #         new_h.append(h); new_l.append(l); seen.add(l)
-   
-    # ax.legend(new_h, new_l)
-    # ax.legend(fontsize=13)
     
     handles, labels = ax.get_legend_handles_labels()
     seen = set(); new_h, new_l = [], []
@@ -560,7 +550,6 @@ def plot_prod_norm_vs_biogas_ax(
         if lab not in seen:
             new_h.append(patch); new_l.append(lab); seen.add(lab)
 
-    # ax.legend(new_h, new_l, fontsize=13, frameon=False, handlelength=1.5, handletextpad=0.5)
 
     for patch, lab in getattr(ax, "_ci_legend_entries", []):
         if lab not in seen:
@@ -569,19 +558,19 @@ def plot_prod_norm_vs_biogas_ax(
     handler_map = {patch: HandlerPatchWithCenterLine(line_lw=2) # <-- Adjust line thickness in legend patch
                 for patch, _ in getattr(ax, "_ci_legend_entries", [])}
 
-    ax.legend(new_h, new_l, fontsize=13, frameon=False, handlelength=1.5,
+    ax.legend(new_h, new_l, fontsize=14, frameon=False, handlelength=1.5,
             handletextpad=0.5, handler_map=handler_map)
 
 
     # Labels and spine settings 
-    ax.set_xlabel("Biogas production rate (kg CH₄/hr)", fontsize=16)
-    ax.set_ylabel("Production Normalized CH₄ Emissions (%)", fontsize=16)
+    ax.set_xlabel("Biogas production rate (kg CH₄/hr)", fontsize=18)
+    ax.set_ylabel("Production Normalized CH₄ Emissions (%)", fontsize=18)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["bottom"].set_linewidth(2)
     ax.spines["left"].set_linewidth(2)
     # ax.grid(True, which='both', linestyle='--', linewidth=0.5)
-    ax.tick_params(axis="both", which="major", direction="in", length=6, width=1, labelsize=14, pad=8)
+    ax.tick_params(axis="both", which="major", direction="in", length=6, width=1, labelsize=16, pad=8)
     ax.tick_params(axis="both", which="minor", direction="in", length=3)
   
     
