@@ -173,15 +173,8 @@ def run_mc_for_all_plants(
       - flow_m3_per_day (float)
     Runs MC per plant for each leak-rate sampler, returns a summary DataFrame.
     """
-    # Basic hygiene
-    # df = df.rename(columns={c: c.strip() for c in df.columns})
-    # df["state"] = df["state"].astype(str).str.strip().str.upper()
-    # df["flow_m3_per_day"] = pd.to_numeric(df["flow_m3_per_day"], errors="coerce")
-    # df = df.dropna(subset=["state", "flow_m3_per_day"])
-    # df = df[df["flow_m3_per_day"] > 0].copy()
-    # df.reset_index(drop=True, inplace=True)
 
-    # Prepare results table scaffold
+    # Prepare results table 
     out_rows = []
 
     for i, row in df.iterrows():
@@ -209,12 +202,20 @@ def run_mc_for_all_plants(
                 random_seed=seed
             )
 
+            # Calculate 95% CI 
+            z = 1.96  # for normal approximation
+            ci_half_width = z * (np.std(revenues) / np.sqrt(n_iter))
+            ci_lower = np.mean(revenues) - ci_half_width
+            ci_upper = np.mean(revenues) + ci_half_width
+
             # Summaries
             row_result.update({
                 f"median_{name}": float(np.median(revenues)),
                 f"p2_5_{name}":  float(np.percentile(revenues, 2.5)),
                 f"p97_5_{name}": float(np.percentile(revenues, 97.5)),
                 f"mean_{name}":  float(np.mean(revenues)),
+                f"ci_lower_{name}": float(ci_lower), # adding this to see what it looks like
+                f"ci_upper_{name}": float(ci_upper), # adding this to see what it looks like
                 f"elec_mu_usd_per_kwh_{name}": price_means["elec_mu_usd_per_kwh"],
                 f"ng_mu_usd_per_mj_{name}":    price_means["ng_mu_usd_per_mj"],
             })
@@ -254,15 +255,19 @@ def summarize_national_from_mc(summary_df, leak_rate_samplers, n_iter=10000):
         # Extract plant-level summaries
         med = summary_df[f"median_{name}"].sum()
         mean = summary_df[f"mean_{name}"].sum()
-        lo = summary_df[f"p2_5_{name}"].sum()
-        hi = summary_df[f"p97_5_{name}"].sum()
+        lo = summary_df[f"ci_lower_{name}"].sum() # previously: p2_5_{name}
+        hi = summary_df[f"ci_upper_{name}"].sum() #previously: p97_5_{name}
+        p2_5 = summary_df[f"p2_5_{name}"].sum()
+        p97_5 = summary_df[f"p97_5_{name}"].sum()
 
         national_summaries.append({
             "distribution": name,
             "median_sum": med,
             "mean_sum": mean,
-            "p2_5_sum": lo,
-            "p97_5_sum": hi
+            "ci_lower_sum": lo, # previously: p2_5_sum
+            "ci_upper_sum": hi, # previously: p97_5_sum
+            "p2_5_sum": p2_5,
+            "p97_5_sum": p97_5, 
         })
     
     return pd.DataFrame(national_summaries)
@@ -323,17 +328,19 @@ def print_national_summary_table(national_summary_df):
     """
     print("\nNational Monte Carlo Summary (USD per year)")
     print("-" * 70)
-    print(f"{'Distribution':<20} {'Median [95% CI]':<30} {'Mean [95% CI]':<30}")
+    print(f"{'Distribution':<20} {'Median [95% range]':<30} {'Mean [95% CI]':<30}") # We are displaying 2.5th to 97.5th percentiles here
     print("-" * 70)
 
     for _, row in national_summary_df.iterrows():
         dist = row["distribution"]
         med = row["median_sum"]
         mean = row["mean_sum"]
-        lo = row["p2_5_sum"]
-        hi = row["p97_5_sum"]
+        p2_5 = row["p2_5_sum"]
+        p97_5 = row["p97_5_sum"]
+        lo = row["ci_lower_sum"] # previously: p2_5_sum
+        hi = row["ci_upper_sum"] # previously: p97_5_sum
 
-        med_str = f"{med:,.0f} [{lo:,.0f} – {hi:,.0f}]"
+        med_str = f"{med:,.0f} [{p2_5:,.0f} – {p97_5:,.0f}]"
         mean_str = f"{mean:,.0f} [{lo:,.0f} – {hi:,.0f}]"
 
         print(f"{dist:<20} {med_str:<30} {mean_str:<30}")
