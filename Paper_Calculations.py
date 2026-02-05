@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pathlib
 from a_my_utilities import set_chini_dataset, load_ch4_emissions_data, calc_biogas_production_rate, load_ch4_emissions_with_ad_only, calculate_production_normalized_ch4, calc_annual_revenue
-from a_my_utilities import solve_leak_rate_for_value, get_chini_slope, METHANE_MJ_PER_KG, get_chini_r2, annualized_cost, ENGINES
+from a_my_utilities import solve_leak_rate_for_value, get_chini_slope, METHANE_MJ_PER_KG, get_chini_r2, annualized_cost, ENGINES, METHANE_KG_PER_SCF
 import matplotlib.ticker as mtick
 import matplotlib.ticker as ticker
 
@@ -60,6 +60,38 @@ wwtp_data = pd.read_csv(pathlib.Path("02_clean_data", "wwtp_data.csv"))
 
 
 #%% 
+
+######### Section: Introduction Calculations #######
+
+# Convert the MMT CO2-eq from El Abbadi, Feng et al 2025 to MMT CH4
+total_ch4_mmtCO2eq_low = 15 # Low estimate is 15 MMT CO2-eq/year 
+total_ch4_mmtCO2eq_high = 25 # High estimate is 25 MMT CO2-eq/year
+
+# GWP of methane over a 100 year time frame 
+gwp_ch4 = 29.8 # Median value from EL Abbadi, Feng et al 2025
+
+total_ch4_mmtCH4_low = total_ch4_mmtCO2eq_low / gwp_ch4
+total_ch4_mmtCH4_high = total_ch4_mmtCO2eq_high / gwp_ch4
+
+# Print
+print(f"Total methane emissions from WWTPs in the US (low estimate): {total_ch4_mmtCH4_low:.2f} MMT CH4/year")
+print(f"Total methane emissions from WWTPs in the US (high estimate): {total_ch4_mmtCH4_high:.2f} MMT CH4/year")
+
+# California's annual natural gas production in 2023 (according to EIA: https://www.eia.gov/dnav/ng/hist/na1160_sca_2a.htm)
+ca_ng_production2023 = 124_024 # Units: million cubic feet (MMcf)
+
+# Convert to MMT CH4
+ca_ng_production_mmtCH4 = (ca_ng_production2023 * 1e6 * METHANE_KG_PER_SCF) / 1e9  # Convert to MMT CH4
+print(f"California's annual natural gas production in 2023: {ca_ng_production_mmtCH4:.2f} MMT CH4/year")
+
+# What fraction of CA's natural gas production is equivalent to national WRRF emissions? 
+fraction_equiv_high = total_ch4_mmtCH4_high / ca_ng_production_mmtCH4
+fraction_equiv_low = total_ch4_mmtCH4_low / ca_ng_production_mmtCH4
+
+print(f"Fraction of California's natural gas production equivalent to national WRRF methane emissions (low estimate): {fraction_equiv_low:.2%}")
+print(f"Fraction of California's natural gas production equivalent to national WRRF methane emissions (high estimate): {fraction_equiv_high:.2%}")
+
+#%%
 ######### Section: Comparison of measurement-based emissions factors from WRRFs #######
 
 # How many facilities do not report biogas production?
