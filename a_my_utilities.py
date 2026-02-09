@@ -478,22 +478,34 @@ def compute_through_origin_regression(
     Returns:
         dict with keys:
             slope (float): least-squares slope through the origin
-            r2_origin (float): 1 - SS_res / sum(y^2)  (Excel when intercept=0)
+            r2: 1 - (ss_res / sum((y-y_mean)^2)) 
+            r2_uncentered: 1 - (ss_res / sum(y^2))
             n (int): number of points used
     """
     x, y = _clean_xy(data, x_col, y_col, drop_negative=drop_negative)
 
+    # Determine linear regression parameters (with forced origin intercept) 
+    # Equations for linear regression through origin can be found here: https://bookdown.org/colettemair0/bookdown/the-method-of-least-squares.html
     denom = float(np.sum(x**2))
     slope = float(np.sum(x * y) / denom)
-
+    
+    # Determine R2 value 
+    # Data source: Introductory Econometrics by Jeffrey Woodbridge 
+    y_mean = y.mean() 
     y_pred = slope * x
-    ss_res = float(np.sum((y - y_pred) ** 2))
-    ss_tot_origin = float(np.sum(y ** 2))
-    r2_origin = (1.0 - ss_res / ss_tot_origin) if ss_tot_origin > 0.0 else float("nan")
+    ss_res = float(np.sum((y - y_pred) ** 2)) # sum of squared residuals
+    ss_tot = float(np.sum((y-y_mean) ** 2)) # total sum of squares
+    r2 = (1.0 - ss_res / ss_tot) if ss_tot > 0.0 else float("nan")
+
+    # uncentered version: 
+    ss_tot_uncentered = float(np.sum(y**2)) # total sum of squares without subtracting mean
+    r2_origin = (1.0 - ss_res / ss_tot_uncentered) if ss_tot_uncentered > 0.0 else float("nan")
+    
 
     return {
         "slope": slope,
-        "r2_origin": r2_origin,
+        "r2": r2,
+        "r2_origin (uncentered)": r2_origin,
         "n": int(len(x)),
     }
 
