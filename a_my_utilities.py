@@ -503,10 +503,10 @@ def compute_through_origin_regression(
     r2_origin = (1.0 - ss_res / ss_tot_uncentered) if ss_tot_uncentered > 0.0 else float("nan")
 
     # Calculate the standard error of the slope 
-    sigma_squared = ss_res / (len(x) - 1) # Equation 2.61 in Woodldbridge 2009
-    print(f"Debug: sigma_squared = {sigma_squared}, ss_res = {ss_res}, n = {len(x)}")
+    sigma_squared = ss_res / (len(x) - 1) # Equation 2.61 in Woodldbridge 2009, adjusted for 1 degree of freedom
+    sigma = sigma_squared ** 0.5 # standard error of the regression 
     se_denom = float(np.sum((x-x_mean)**2) ** 0.5) # Equation 2.61 in Woodldbridge 2009
-    se_slope = (sigma_squared ** 0.5) / se_denom if se_denom > 0 else float("nan")
+    se_slope = sigma / se_denom if se_denom > 0 else float("nan") #  standard error of the slop (page 58 in Wooldbridge 2009)
     
 
     return {
@@ -514,6 +514,7 @@ def compute_through_origin_regression(
         "r2": r2,
         "r2_origin": r2_origin,
         "n": int(len(x)),
+        "sigma": sigma,
         "se_slope": se_slope,
     }
 
@@ -568,6 +569,10 @@ def get_chini_stats():
     stats = _chini_stats_cached()
     return dict(stats)
 
+def get_chini_sample_size():
+    """Sample size for the registered Chini dataset."""
+    return _chini_stats_cached()["n"]
+
 def get_chini_slope():
     """Convenience: slope (kg CH4/h per (m^3/day))."""
     return _chini_stats_cached()["slope"]
@@ -579,6 +584,10 @@ def get_chini_r2_origin():
 def get_chini_r2_centered():
     """Centered R² using SST about y-mean (often not used for through-origin fits)."""
     return _chini_stats_cached()["r2"]
+
+def get_chini_sigma():
+    """Standard error of the regression in chini linear regression."""
+    return _chini_stats_cached()["sigma"]
 
 def get_chini_se_slope():
     """Standard error of the slope in chini linear regression."""

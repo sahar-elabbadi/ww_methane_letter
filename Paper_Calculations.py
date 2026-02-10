@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pathlib
-from a_my_utilities import get_chini_se_slope, set_chini_dataset, load_ch4_emissions_data, calc_biogas_production_rate, load_ch4_emissions_with_ad_only, calculate_production_normalized_ch4, calc_annual_revenue
+from a_my_utilities import get_chini_sample_size, get_chini_se_slope, get_chini_sigma, set_chini_dataset, load_ch4_emissions_data, calc_biogas_production_rate, load_ch4_emissions_with_ad_only, calculate_production_normalized_ch4, calc_annual_revenue
 from a_my_utilities import solve_leak_rate_for_value, get_chini_slope, METHANE_MJ_PER_KG, get_chini_r2_centered, get_chini_r2_origin, annualized_cost, ENGINES, METHANE_KG_PER_SCF
 import matplotlib.ticker as mtick
 import matplotlib.ticker as ticker
@@ -110,7 +110,7 @@ slope_kg_per_m3 = slope * 24  # Convert to kg CH4 per m3 wastewater
 slope_MJ_per_m3 = slope_kg_per_m3 *  METHANE_MJ_PER_KG # Convert to MJ biogas per m3 wastewater
 
 # print
-print(f"Chini slope: {slope:.4f} kg CH4/h per m3 wastewater")
+print(f"Chini slope: {slope:.4f} kg CH4/h per (m^3/day) wastewater")
 print(f"Chini slope: {slope_kg_per_m3:.4f} kg CH4 per m3 wastewater")
 print(f"Chini slope: {slope_MJ_per_m3:.4f} MJ biogas per m3 wastewater")
 
@@ -122,11 +122,20 @@ print(f"Chini R2 (centered, typical calculations): {r2_centered:.5f}")
 r2_origin = get_chini_r2_origin()
 print(f"Chini R2 (through-origin, uncentered): {r2_origin:.5f}")
 
+# What is standard error of the regression on the slope?: 
+se_slope = get_chini_sigma()
+print(f"Chini standard error of regression: {se_slope:.5f}")
+
 # What is standard error of the mean on the slope?: 
 se_slope = get_chini_se_slope()
 print(f"Chini standard error of slope: {se_slope:.5f}")
 
 
+# Print sample size of Chini dataset
+sample_size = get_chini_sample_size()
+print(f"Sample size of Chini dataset: {sample_size}")
+
+# %%
 
 #%% 
 ########## Discussion of Figure 2a #######
@@ -261,6 +270,7 @@ print(f"T-test (kg/m3): t = {t_stat_norm:.3f}, p = {p_val_norm:.4f}")
 # )
 # measurement_data_ad = measurement_data_ad_filt
 
+
 has_biogas_data = measurement_data_ad_filt[measurement_data_ad_filt["reported_biogas_production"]=='yes']
 no_biogas_data = measurement_data_ad_filt[measurement_data_ad_filt["reported_biogas_production"]=='no']
 
@@ -268,12 +278,22 @@ print(f'\nCALCULATING LEAK RATES BASED ON BIOGAS AVAILABILITY\n')
 
 # --- With Biogas data ---
 print(f"Mean normalized emissions for facilities with biogas data: {has_biogas_data['production_normalized_CH4_percent'].mean()*100:.4f}%")
+# Confidence intervals for the mean 
+z=1.95996 # z-score for 95% confidence interval, Hazra et al 2017
+lower_ci = has_biogas_data['production_normalized_CH4_percent'].mean() - z * has_biogas_data['production_normalized_CH4_percent'].sem()
+upper_ci = has_biogas_data['production_normalized_CH4_percent'].mean() + z * has_biogas_data['production_normalized_CH4_percent'].sem()
+print(f"95% Confidence interval for facilities with biogas data: ({lower_ci*100:.4f}%, {upper_ci*100:.4f}%)")
+
 print(f"Median normalized emissions for facilities with biogas data: {has_biogas_data['production_normalized_CH4_percent'].median()*100:.4f}%")
 print(f"Std Dev normalized emissions for facilities with biogas data: {has_biogas_data['production_normalized_CH4_percent'].std()*100:.4f}%")
 print(f'\n')
 
 # --- Without AD ---
 print(f"Mean normalized emissions for facilities without biogas data: {no_biogas_data['production_normalized_CH4_percent'].mean()*100:.4f}%")
+lower_ci = no_biogas_data['production_normalized_CH4_percent'].mean() - z * no_biogas_data['production_normalized_CH4_percent'].sem()
+upper_ci = no_biogas_data['production_normalized_CH4_percent'].mean() + z * no_biogas_data['production_normalized_CH4_percent'].sem()
+print(f"95% Confidence interval for facilities without biogas data: ({lower_ci*100:.4f}%, {upper_ci*100:.4f}%)")
+
 print(f"Median normalized emissions for facilities without biogas data: {no_biogas_data['production_normalized_CH4_percent'].median()*100:.4f}%")
 print(f"Std Dev normalized emissions for facilities without biogas data: {no_biogas_data['production_normalized_CH4_percent'].std()*100:.4f}%")
 
