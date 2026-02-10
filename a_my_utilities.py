@@ -493,6 +493,7 @@ def compute_through_origin_regression(
     # Data source: Introductory Econometrics by Jeffrey Woodbridge 
     y_mean = y.mean() 
     y_pred = slope * x
+    x_mean = x.mean()
     ss_res = float(np.sum((y - y_pred) ** 2)) # sum of squared residuals
     ss_tot = float(np.sum((y-y_mean) ** 2)) # total sum of squares
     r2 = (1.0 - ss_res / ss_tot) if ss_tot > 0.0 else float("nan")
@@ -500,13 +501,20 @@ def compute_through_origin_regression(
     # uncentered version: 
     ss_tot_uncentered = float(np.sum(y**2)) # total sum of squares without subtracting mean
     r2_origin = (1.0 - ss_res / ss_tot_uncentered) if ss_tot_uncentered > 0.0 else float("nan")
+
+    # Calculate the standard error of the slope 
+    sigma_squared = ss_res / (len(x) - 1) # Equation 2.61 in Woodldbridge 2009
+    print(f"Debug: sigma_squared = {sigma_squared}, ss_res = {ss_res}, n = {len(x)}")
+    se_denom = float(np.sum((x-x_mean)**2) ** 0.5) # Equation 2.61 in Woodldbridge 2009
+    se_slope = (sigma_squared ** 0.5) / se_denom if se_denom > 0 else float("nan")
     
 
     return {
         "slope": slope,
         "r2": r2,
-        "r2_origin (uncentered)": r2_origin,
+        "r2_origin": r2_origin,
         "n": int(len(x)),
+        "se_slope": se_slope,
     }
 
 # ----------------------------
@@ -564,10 +572,17 @@ def get_chini_slope():
     """Convenience: slope (kg CH4/h per (m^3/day))."""
     return _chini_stats_cached()["slope"]
 
-def get_chini_r2():
-    """Convenience: Excel-style through-origin R² (intercept=0)."""
+def get_chini_r2_origin():
+    """Through-origin (uncentered) R² (intercept forced to 0)."""
     return _chini_stats_cached()["r2_origin"]
 
+def get_chini_r2_centered():
+    """Centered R² using SST about y-mean (often not used for through-origin fits)."""
+    return _chini_stats_cached()["r2"]
+
+def get_chini_se_slope():
+    """Standard error of the slope in chini linear regression."""
+    return _chini_stats_cached()["se_slope"]
 
 def chini_confidence_intervals(flow_m3_per_day, alpha=0.05):
     """

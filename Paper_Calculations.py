@@ -5,8 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pathlib
-from a_my_utilities import set_chini_dataset, load_ch4_emissions_data, calc_biogas_production_rate, load_ch4_emissions_with_ad_only, calculate_production_normalized_ch4, calc_annual_revenue
-from a_my_utilities import solve_leak_rate_for_value, get_chini_slope, METHANE_MJ_PER_KG, get_chini_r2, annualized_cost, ENGINES, METHANE_KG_PER_SCF
+from a_my_utilities import get_chini_se_slope, set_chini_dataset, load_ch4_emissions_data, calc_biogas_production_rate, load_ch4_emissions_with_ad_only, calculate_production_normalized_ch4, calc_annual_revenue
+from a_my_utilities import solve_leak_rate_for_value, get_chini_slope, METHANE_MJ_PER_KG, get_chini_r2_centered, get_chini_r2_origin, annualized_cost, ENGINES, METHANE_KG_PER_SCF
 import matplotlib.ticker as mtick
 import matplotlib.ticker as ticker
 
@@ -100,6 +100,9 @@ print(f"Number of facilities that do not report biogas production: {measurement_
 # Percent of facilities that do not report biogas production:
 print(f"Percent of facilities that do not report biogas production: {measurement_data_no_biogas / measurement_data_ad_raw.shape[0] * 100:.2f}%")
 
+#%%
+### LINEAR REGRESSION CALCLATIONS ####
+
 # What is the slope of the Chini dataset in MJ biogas per m3? 
 
 slope = get_chini_slope()          # kg CH4/h per (m^3 wastewater/day)
@@ -112,8 +115,18 @@ print(f"Chini slope: {slope_kg_per_m3:.4f} kg CH4 per m3 wastewater")
 print(f"Chini slope: {slope_MJ_per_m3:.4f} MJ biogas per m3 wastewater")
 
 # What is the R2 of the Chini dataset?
-r2 = get_chini_r2()
-print(f"Chini R2: {r2:.4f}")
+r2_centered = get_chini_r2_centered()
+print(f"Chini R2 (centered, typical calculations): {r2_centered:.5f}")
+
+# What is R2 for through-origin fit (uncentered R2)? (excel calculation style): 
+r2_origin = get_chini_r2_origin()
+print(f"Chini R2 (through-origin, uncentered): {r2_origin:.5f}")
+
+# What is standard error of the mean on the slope?: 
+se_slope = get_chini_se_slope()
+print(f"Chini standard error of slope: {se_slope:.5f}")
+
+
 
 #%% 
 ########## Discussion of Figure 2a #######
