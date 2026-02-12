@@ -27,7 +27,7 @@ gas_price = 0.008 # $/MJ fixed for all panels - value based on calculations in P
 engine = ENGINES['reciprocating_lean_burn'] # SET ENGINE TYPE HERE 
 
 vmin = 0
-vmax = 4_700_000
+vmax = 5_500_000
 levels_fill = np.linspace(vmin, vmax, 100)  
 # levels_line = np.linspace(vmin, vmax, 10)    # default evenly spaced lines
 levels_line = [100_000, 250_000, 500_000, 750_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000, 4_000_000, 5_000_000]
@@ -337,3 +337,5 @@ fig.savefig(save_path, dpi=300, bbox_inches='tight', transparent=False)
 print(f"Plot saved to: {save_path.resolve()}")
 
 
+
+# %%

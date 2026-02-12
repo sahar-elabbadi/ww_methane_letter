@@ -475,6 +475,7 @@ print(f"Fraction of CHP facilities with flow over {flow_threshold_m3_per_day/1e6
 
 
 #%% 
+##### DISCUSSION OF FIG 4
 # Mean and SD of production normalized CH4 leak rates (percent): 
 mean_leak_rate = measurement_data_has_biogas_data['production_normalized_CH4_percent'].mean() 
 median_leak_rate = measurement_data_has_biogas_data['production_normalized_CH4_percent'].median()
@@ -517,148 +518,7 @@ required_leak_rate = solve_leak_rate_for_value(
 print(f"Fraction gas capturable: {leak_fraction_capturable}")
 print(f"Required leak rate for a plant that is {plant_size/1e6:.1f}Mm3/day: {required_leak_rate:.3%}")
 
-# %%
-########## Section: Applying to real world plants #######
-
-from a_my_utilities import calc_leak_value_CHP
-
-# How many facilities are there with CHP in the United States? 
-count_chp = chp_data.shape[0]
-print(f"Facilities with CHP: {count_chp}")
-
-# How big are these facilities? 
-mean_facility_size_Mm3_per_day = chp_data['flow_m3_per_day'].mean()*1e-6
-print(f"Mean facility size: {mean_facility_size_Mm3_per_day}")
-
-median_facility_size_Mm3_per_day = chp_data['flow_m3_per_day'].median()*1e-6
-print(f"Median facility size: {median_facility_size_Mm3_per_day}")
-
-std_dev_facility_size_Mm3_per_day = chp_data['flow_m3_per_day'].std()*1e-6
-print(f"Stdev facility size: {std_dev_facility_size_Mm3_per_day}")
-
-chp_data['annual_revenue_conservative'] = chp_data['flow_m3_per_day'].apply(lambda x: calc_annual_revenue(plant_size=x, leak_rate=0.05, leak_fraction_capturable=0.5, engine=engine, 
-                                                                                                          electricity_price_per_kWh=electricity_price, nat_gas_price_per_MJ=nat_gas_price))
-
-#%%
-############ MAKE TABLE 1 ###############
-
-
-import pandas as pd
-
-# --- Inputs / constants ---
-threshold = 100_000  # $100k
-leak_rates = [0.05, 0.15, 0.3]
-capturable_fracs = [0.5, 0.8]
-
-# Total national flow (all WWTPs, not only CHP subset)
-total_national_flow = wwtp_data['flow_m3_per_day'].sum()
-
-# Helper to compute metrics for a scenario
-def scenario_metrics(leak_rate, capturable):
-    # Compute annual revenue for each CHP facility under this scenario
-    annual_rev = chp_data.apply(
-        lambda r: calc_annual_revenue(
-            plant_size=r['flow_m3_per_day'],
-            leak_rate=leak_rate,
-            leak_fraction_capturable=capturable,
-            engine=engine, 
-            electricity_price_per_kWh=r['electricity_cost'], 
-            nat_gas_price_per_MJ=r['natural_gas_cost']
-        ),
-        axis=1
-    )
-    # Mask of facilities above the threshold
-    mask = annual_rev > threshold
-
-    # Outputs
-    n_facilities = int(mask.sum())
-    share_national_flow = (
-        chp_data.loc[mask, 'flow_m3_per_day'].sum() / total_national_flow
-        if total_national_flow > 0 else float('nan')
-    )
-    return n_facilities, share_national_flow
-
-# Collect results
-rows = []
-for lr in leak_rates:
-    for cap in capturable_fracs:
-        n_fac, flow_share = scenario_metrics(lr, cap)
-        rows.append({
-            "Leak rate": lr,
-            "Capturable fraction": cap,
-            "Facilities > $100k": n_fac,
-            "Share of national flow": flow_share
-        })
-
-# Build and print a readable table
-df = pd.DataFrame(rows)
-
-# Formatters for pretty printing in plain text (good for Word)
-formatters = {
-    "Leak rate": lambda v: f"{v:.0%}",
-    "Capturable fraction": lambda v: f"{v:.0%}",
-    "Facilities > $100k": lambda v: f"{v:,}",
-    "Share of national flow": lambda v: f"{v:.2%}"
-}
-
-print("\n=== Revenue > $100,000 — Facilities and National Flow Share by Scenario ===")
-print(df.to_string(index=False, formatters=formatters))
-
-# Optional: also print each scenario on its own line (easy to paste inline in text)
-print("\n--- Scenario summaries ---")
-for _, r in df.iterrows():
-    print(
-        f"Leak rate {r['Leak rate']:.0%}, Capturable {r['Capturable fraction']:.0%}: "
-        f"Facilities > $100k = {int(r['Facilities > $100k']):,}; "
-        f"Share of national flow = {r['Share of national flow']:.2%}"
-    )
-
-# --- Mean and median flow for >$100k facilities in each scenario ---
-rows_flow = []
-for lr in leak_rates:
-    for cap in capturable_fracs:
-        # Recompute annual revenue for this scenario
-        annual_rev = chp_data.apply(
-            lambda r: calc_annual_revenue(
-                plant_size=r['flow_m3_per_day'],
-                leak_rate=lr,
-                leak_fraction_capturable=cap,
-                engine=engine, 
-                electricity_price_per_kWh=r['electricity_cost'], 
-                nat_gas_price_per_MJ=r['natural_gas_cost']
-            ), 
-            axis=1
-        )
-        mask = annual_rev > threshold
-        selected = chp_data.loc[mask, 'flow_m3_per_day']
-
-        if not selected.empty:
-            mean_flow = selected.mean() * 1e-6  # convert to Mm³/day
-            median_flow = selected.median() * 1e-6
-        else:
-            mean_flow, median_flow = float('nan'), float('nan')
-
-        rows_flow.append({
-            "Leak rate": lr,
-            "Capturable fraction": cap,
-            "Mean flow (Mm³/day)": mean_flow,
-            "Median flow (Mm³/day)": median_flow
-        })
-
-df_flow = pd.DataFrame(rows_flow)
-
-# Pretty print table
-formatters_flow = {
-    "Leak rate": lambda v: f"{v:.0%}",
-    "Capturable fraction": lambda v: f"{v:.0%}",
-    "Mean flow (Mm³/day)": lambda v: f"{v:.2f}",
-    "Median flow (Mm³/day)": lambda v: f"{v:.2f}"
-}
-
-print("\n=== Mean and Median Flow of Facilities with Revenue > $100,000 ===")
-print(df_flow.to_string(index=False, formatters=formatters_flow))
-
-
+## NOTE: descriptions of figures 4c and 4d are from visual inspection of the plots. 
 
 #%% Annualized cost of OGI camera 
 
@@ -732,3 +592,149 @@ print(f"Survey cost high (OGI, tuneable diode laser, etc.): ${survey_cost_high *
 
 measurement_data["source"].value_counts(dropna=False)
 # %%
+
+
+#### OLD: 
+
+# # %%
+# ########## Section: Applying to real world plants #######
+
+# from a_my_utilities import calc_leak_value_CHP
+
+# # How many facilities are there with CHP in the United States? 
+# count_chp = chp_data.shape[0]
+# print(f"Facilities with CHP: {count_chp}")
+
+# # How big are these facilities? 
+# mean_facility_size_Mm3_per_day = chp_data['flow_m3_per_day'].mean()*1e-6
+# print(f"Mean facility size: {mean_facility_size_Mm3_per_day}")
+
+# median_facility_size_Mm3_per_day = chp_data['flow_m3_per_day'].median()*1e-6
+# print(f"Median facility size: {median_facility_size_Mm3_per_day}")
+
+# std_dev_facility_size_Mm3_per_day = chp_data['flow_m3_per_day'].std()*1e-6
+# print(f"Stdev facility size: {std_dev_facility_size_Mm3_per_day}")
+
+# chp_data['annual_revenue_conservative'] = chp_data['flow_m3_per_day'].apply(lambda x: calc_annual_revenue(plant_size=x, leak_rate=0.05, leak_fraction_capturable=0.5, engine=engine, 
+#                                                                                                           electricity_price_per_kWh=electricity_price, nat_gas_price_per_MJ=nat_gas_price))
+
+# #%%
+# ############ MAKE TABLE 1 ###############
+
+
+# import pandas as pd
+
+# # --- Inputs / constants ---
+# threshold = 100_000  # $100k
+# leak_rates = [0.05, 0.15, 0.3]
+# capturable_fracs = [0.5, 0.8]
+
+# # Total national flow (all WWTPs, not only CHP subset)
+# total_national_flow = wwtp_data['flow_m3_per_day'].sum()
+
+# # Helper to compute metrics for a scenario
+# def scenario_metrics(leak_rate, capturable):
+#     # Compute annual revenue for each CHP facility under this scenario
+#     annual_rev = chp_data.apply(
+#         lambda r: calc_annual_revenue(
+#             plant_size=r['flow_m3_per_day'],
+#             leak_rate=leak_rate,
+#             leak_fraction_capturable=capturable,
+#             engine=engine, 
+#             electricity_price_per_kWh=r['electricity_cost'], 
+#             nat_gas_price_per_MJ=r['natural_gas_cost']
+#         ),
+#         axis=1
+#     )
+#     # Mask of facilities above the threshold
+#     mask = annual_rev > threshold
+
+#     # Outputs
+#     n_facilities = int(mask.sum())
+#     share_national_flow = (
+#         chp_data.loc[mask, 'flow_m3_per_day'].sum() / total_national_flow
+#         if total_national_flow > 0 else float('nan')
+#     )
+#     return n_facilities, share_national_flow
+
+# # Collect results
+# rows = []
+# for lr in leak_rates:
+#     for cap in capturable_fracs:
+#         n_fac, flow_share = scenario_metrics(lr, cap)
+#         rows.append({
+#             "Leak rate": lr,
+#             "Capturable fraction": cap,
+#             "Facilities > $100k": n_fac,
+#             "Share of national flow": flow_share
+#         })
+
+# # Build and print a readable table
+# df = pd.DataFrame(rows)
+
+# # Formatters for pretty printing in plain text (good for Word)
+# formatters = {
+#     "Leak rate": lambda v: f"{v:.0%}",
+#     "Capturable fraction": lambda v: f"{v:.0%}",
+#     "Facilities > $100k": lambda v: f"{v:,}",
+#     "Share of national flow": lambda v: f"{v:.2%}"
+# }
+
+# print("\n=== Revenue > $100,000 — Facilities and National Flow Share by Scenario ===")
+# print(df.to_string(index=False, formatters=formatters))
+
+# # Optional: also print each scenario on its own line (easy to paste inline in text)
+# print("\n--- Scenario summaries ---")
+# for _, r in df.iterrows():
+#     print(
+#         f"Leak rate {r['Leak rate']:.0%}, Capturable {r['Capturable fraction']:.0%}: "
+#         f"Facilities > $100k = {int(r['Facilities > $100k']):,}; "
+#         f"Share of national flow = {r['Share of national flow']:.2%}"
+#     )
+
+# # --- Mean and median flow for >$100k facilities in each scenario ---
+# rows_flow = []
+# for lr in leak_rates:
+#     for cap in capturable_fracs:
+#         # Recompute annual revenue for this scenario
+#         annual_rev = chp_data.apply(
+#             lambda r: calc_annual_revenue(
+#                 plant_size=r['flow_m3_per_day'],
+#                 leak_rate=lr,
+#                 leak_fraction_capturable=cap,
+#                 engine=engine, 
+#                 electricity_price_per_kWh=r['electricity_cost'], 
+#                 nat_gas_price_per_MJ=r['natural_gas_cost']
+#             ), 
+#             axis=1
+#         )
+#         mask = annual_rev > threshold
+#         selected = chp_data.loc[mask, 'flow_m3_per_day']
+
+#         if not selected.empty:
+#             mean_flow = selected.mean() * 1e-6  # convert to Mm³/day
+#             median_flow = selected.median() * 1e-6
+#         else:
+#             mean_flow, median_flow = float('nan'), float('nan')
+
+#         rows_flow.append({
+#             "Leak rate": lr,
+#             "Capturable fraction": cap,
+#             "Mean flow (Mm³/day)": mean_flow,
+#             "Median flow (Mm³/day)": median_flow
+#         })
+
+# df_flow = pd.DataFrame(rows_flow)
+
+# # Pretty print table
+# formatters_flow = {
+#     "Leak rate": lambda v: f"{v:.0%}",
+#     "Capturable fraction": lambda v: f"{v:.0%}",
+#     "Mean flow (Mm³/day)": lambda v: f"{v:.2f}",
+#     "Median flow (Mm³/day)": lambda v: f"{v:.2f}"
+# }
+
+# print("\n=== Mean and Median Flow of Facilities with Revenue > $100,000 ===")
+# print(df_flow.to_string(index=False, formatters=formatters_flow))
+
+
