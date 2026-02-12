@@ -13,7 +13,7 @@ import pandas as pd
 ####### GLOBAL CONSTANTS ########################################
 
 BIOGAS_FRACTION_CH4 = 0.65  # Assume 65% CH4 in biogas. Source: Metcalf & Eddy, page 1520
-METHANE_SCF_PER_THERM = 100
+METHANE_SCF_PER_THERM = 100 # As reported by Chini et al 
 METHANE_MMBTU_PER_THERM = 0.1
 METHANE_KG_PER_SCF = 0.019176  # kg of methane per scf (standard conditions, 15C, 1 atm) 
 METHANE_KG_PER_NM3 = 0.7168 # kg of CH4 per normal m3 (Normal conditions: 0 C , 1 atm) 
@@ -25,11 +25,11 @@ MSCF_TO_MJ    = MSCF_TO_MMBTU * MMBTU_TO_MJ  # ≈ 1,094.093 MJ per Mscf
 
 
 # Methane lower heating value - when water is not condensed 
-kJ_per_mol = 802.3   # kJ/mol, reported in Harrison et al., 2010
+kJ_per_mol = 890.3   # kJ/mol, reported in Harrison et al., 2010
 MW_methane = 16.04    # g/mol = 0.01604 kg/mol
 
 # Convert kJ/mol to MJ/kg
-METHANE_MJ_PER_KG = (kJ_per_mol / 1000) / (MW_methane / 1000) # Result: 50 MJ / kg
+METHANE_MJ_PER_KG = (kJ_per_mol / 1000) / (MW_methane / 1000) # Result: 55.6 MJ / kg
 
 ####### Data Loading ########################################
 
@@ -765,6 +765,7 @@ class Engine:
         return 1.0 / self.power_to_heat_ratio
     
 
+# Note: efficiency of engines reported in EPA 2011 use HHV (typical convention in the US)
 ENGINES = {
     "reciprocating_rich_burn": Engine("reciprocating_rich_burn", efficiency=0.291, power_to_heat_ratio=0.62), # Source: US EPA, 2011; Table 5
     "reciprocating_lean_burn":     Engine("reciprocating_lean_burn",     efficiency=0.326, power_to_heat_ratio=0.86), # Source: US EPA, 2011; Table 5

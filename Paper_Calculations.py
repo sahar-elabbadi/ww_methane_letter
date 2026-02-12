@@ -100,6 +100,12 @@ print(f"Number of facilities that do not report biogas production: {measurement_
 # Percent of facilities that do not report biogas production:
 print(f"Percent of facilities that do not report biogas production: {measurement_data_no_biogas / measurement_data_ad_raw.shape[0] * 100:.2f}%")
 
+# Total number of facilities in the dataset: 
+print(f"Total number of facilties in dataset: {measurement_data_ad_raw.shape[0]:.0f}")
+# Number of facilities that report biogas data: 
+print(f"Facilities that report biogas data: {measurement_data_ad_raw[measurement_data_ad_raw['reported_biogas_production'] == 'yes'].shape[0]:0.0f}")
+
+
 #%%
 ### LINEAR REGRESSION CALCLATIONS ####
 
@@ -718,3 +724,11 @@ survey_cost_low = 400
 survey_cost_high = 1200
 print(f"Survey cost low (IR camera, gas analyser, flow meters): ${survey_cost_low * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
 print(f"Survey cost high (OGI, tuneable diode laser, etc.): ${survey_cost_high * usd_per_eu_2023['DEXUSEU'].mean():,.2f} ")
+
+
+#%%
+# Supplementary info 
+# Table of data sources
+
+measurement_data["source"].value_counts(dropna=False)
+# %%
