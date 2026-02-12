@@ -31,6 +31,7 @@ vmax = 5_500_000
 levels_fill = np.linspace(vmin, vmax, 100)  
 # levels_line = np.linspace(vmin, vmax, 10)    # default evenly spaced lines
 levels_line = [100_000, 250_000, 500_000, 750_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000, 4_000_000, 5_000_000]
+levels_line_bottom = [25_000, 50_000, 100_000, 250_000, 500_000, 750_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000, 4_000_000, 5_000_000]
 
 ####### Color maps #######
 # Shared cmap/norm for positives
@@ -126,7 +127,7 @@ plot_methane_savings_vary_capturable(
     fig=fig,
     ax=axes[1, 0],
     levels_fill=levels_fill,
-    levels_line=levels_line,
+    levels_line=levels_line_bottom,
     cmap=shared_cmap,
     norm=shared_norm
 )
@@ -146,7 +147,7 @@ plot_methane_savings_vary_capturable(
     fig=fig,
     ax=axes[1, 1],
     levels_fill=levels_fill,
-    levels_line=levels_line,
+    levels_line=levels_line_bottom,
     cmap=shared_cmap,
     norm=shared_norm
 )
