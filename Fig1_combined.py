@@ -109,7 +109,7 @@ ax2 = ax_bot.twinx()  # methane on secondary y-axis
 # Stats & data
 stats_cached = get_chini_stats()
 slope = stats_cached["slope"]
-r2_origin = stats_cached["r2_origin"]
+r2_origin = stats_cached["r2"]
 x, y = get_chini_xy()
 n = len(x)
 
