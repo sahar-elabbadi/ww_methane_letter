@@ -1,9 +1,7 @@
 
 
 #%%
-# ==========================================================================
-# ############## COMBINED FIGURE WITH BOTH VARIATIONS ###############
-# ==========================================================================
+# Make combined 4 panel figure
 
 import pandas as pd 
 import matplotlib.pyplot as plt
@@ -43,8 +41,8 @@ shared_norm = mcolors.BoundaryNorm(levels_fill, ncolors=shared_cmap.N, clip=True
 ####### Set up figure #######
 fig = plt.figure(figsize=(15, 15))
 
-# 3 rows: [top contours, bottom contours, thin strip row]
-STRIP_ROW = 0.22  # controls strip row height; tweak 0.20–0.30
+# 3 rows: [row 1: top contours, row 2: bottom contours, row 3: thin row for box and whisker]
+STRIP_ROW = 0.22  # controls strip row height
 outer = fig.add_gridspec(3, 2, height_ratios=[1, 1, STRIP_ROW],
                          hspace=0.08, wspace=0.05)
 
