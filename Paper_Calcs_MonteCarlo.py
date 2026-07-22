@@ -183,6 +183,13 @@ def run_mc_for_all_plants(
     # Prepare results table 
     out_rows = []
 
+    # Sampler IDs for seed generation (different seed for different samplers) 
+    sampler_ids = {    
+                "bootstrap_all": 1,
+                "bootstrap_biogas": 2,
+                "heavy_tail": 3
+                }
+
     for i, row in df.iterrows():
         plant_state = row["state"]
         flow = float(row["flow_m3_per_day"])
@@ -192,10 +199,18 @@ def run_mc_for_all_plants(
             "state": plant_state,
             "flow_m3_per_day": flow,
         }
+        
 
-        # For determinism per plant & per sampler
+        # Calculate revenue across different leak-rate scenarios
         for name, sampler in leak_rate_samplers.items():
-            seed = None if base_seed is None else (base_seed + 1000*i + hash(name) % 9973)
+
+            # seed for random number generator 
+            # This is what ChatGPT suggested: 
+            # seed = None if base_seed is None else (base_seed + 1000*i + hash(name) % 9973)
+
+            # Modifying based on online reading 
+            seed = None if base_seed is None else (base_seed + 1000*i + sampler_ids[name])
+
 
             revenues, price_means = monte_carlo_annual_revenue(
                 plant_size=flow,
@@ -216,14 +231,14 @@ def run_mc_for_all_plants(
 
             # Summaries
             row_result.update({
-                f"median_{name}": float(np.median(revenues)),
-                f"p2_5_{name}":  float(np.percentile(revenues, 2.5)),
+                f"median_{name}": float(np.median(revenues)), # median revenue value in USD 
+                f"p2_5_{name}":  float(np.percentile(revenues, 2.5)), # 
                 f"p97_5_{name}": float(np.percentile(revenues, 97.5)),
                 f"mean_{name}":  float(np.mean(revenues)),
                 f"ci_lower_{name}": float(ci_lower), # adding this to see what it looks like
                 f"ci_upper_{name}": float(ci_upper), # adding this to see what it looks like
-                f"elec_mu_usd_per_kwh_{name}": price_means["elec_mu_usd_per_kwh"],
-                f"ng_mu_usd_per_mj_{name}":    price_means["ng_mu_usd_per_mj"],
+                # f"elec_mu_usd_per_kwh_{name}": price_means["elec_mu_usd_per_kwh"], # uncomment if you want to print electricity prices
+                # f"ng_mu_usd_per_mj_{name}":    price_means["ng_mu_usd_per_mj"], # uncomment if you want to print electricity prices
             })
 
         out_rows.append(row_result)
@@ -278,8 +293,8 @@ def summarize_national_from_mc(summary_df, leak_rate_samplers, n_iter=10000):
     
     return pd.DataFrame(national_summaries)
 
-
-## SETUP FOR MONTE CARLO SIMULATION ## 
+########## RUN MONTE CARLO SIMULATION ##########
+## Setup ## 
 
 # Load facility-level data 
 chp_facilities_data = pd.read_csv(pathlib.Path("02_clean_data", "chp_data.csv"))
@@ -308,7 +323,7 @@ summary_df = run_mc_for_all_plants(
     engine=engine,
     n_iter=10000,
     base_seed=123,
-    save_csv_path="02_clean_data/chp_mc_summary.csv"  # or None
+    save_csv_path=pathlib.Path("02_clean_data", "chp_mc_summary.csv")  # or None
 )
 
 
@@ -318,7 +333,7 @@ national_summary = summarize_national_from_mc(
     n_iter=10000
 )
 
-national_summary.to_csv("02_clean_data/chp_national_mc_summary.csv", index=False)
+national_summary.to_csv(pathlib.Path("02_clean_data", "chp_national_mc_summary.csv"), index=False)
 
 # Print for text 
 
@@ -330,7 +345,7 @@ def print_national_summary_table(national_summary_df):
     ----------
     national_summary_df : pd.DataFrame
         Must contain columns: distribution, median, mean, p2_5, p97_5
-        (output from run_mc_for_all_plants_national).
+        (output from summarize_national_from_mc).
     """
     print("\nNational Monte Carlo Summary (USD per year)")
     print("-" * 70)
@@ -353,5 +368,5 @@ def print_national_summary_table(national_summary_df):
     print("-" * 70)
 
 
-# Print nicely formatted summary
+# Print formatted summary
 print_national_summary_table(national_summary.reset_index(drop=True))

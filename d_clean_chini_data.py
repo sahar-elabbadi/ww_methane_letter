@@ -47,7 +47,7 @@ chini_data.to_csv(pathlib.Path("02_clean_data", "chini_cleaned.csv"), index=Fals
 
 #%%
 
-## ORIGINAL PLOT IF DESIRED. REPRODUCED ELSEWHERE ## 
+## ORIGINAL PLOT ## 
 # ######## Compute through-origin regression ##########
 
 # def compute_through_origin_regression(
