@@ -46,9 +46,6 @@ def make_bootstrap_sampler_from_df(df: pd.DataFrame, col: str = "leak_rate"):
     if data.size == 0:
         raise ValueError(f"No valid leak-rate data found in column '{col}' (0<value<1).")
 
-    # Optional: you can print/log the sample size to be aware of data support
-    # print(f"Bootstrap base size for '{col}': {data.size}")
-
     def sampler(n: int):
         return np.random.choice(data, size=n, replace=True)
 
@@ -57,8 +54,8 @@ def make_bootstrap_sampler_from_df(df: pd.DataFrame, col: str = "leak_rate"):
 # For making a heavy tail distribution about a median value 
 def make_heavy_tail_leak_dist(median=0.05, sigma=0.8):
     """
-    Returns a sampler for a heavy-tailed leak-rate distribution.
-    Distribution is lognormal with given median and spread.
+    Returns a sampler function for a heavy-tailed leak-rate distribution.
+    Distribution is lognormal with input median and sigma.
 
     Parameters
     ----------
@@ -72,7 +69,13 @@ def make_heavy_tail_leak_dist(median=0.05, sigma=0.8):
     sampler : function
         sampler(n) gives n leak-rate draws.
     """
-    mu = np.log(median)  # ensures median is as specified
+    # Statistics: 
+    # Median of a lognormal distribution is e^mu where mu is the mean of the distribution 
+    # (source: https://statproofbook.github.io/P/lognorm-med.html)
+
+    mu = np.log(median) # take log of mu to convert median to mean 
+
+    # Make function: 
     def sampler(n):
         return np.random.lognormal(mean=mu, sigma=sigma, size=n)
     return sampler
@@ -121,19 +124,22 @@ def monte_carlo_annual_revenue(
 
     if random_seed is not None:
         np.random.seed(random_seed)
-
-    # --- State means ---
+    
+    ## Make distributions for electricity and natural gases for the input state 
+    
+    # State means
     elec_mean = elec_price_dict[state_abbr]  # $/kWh
     ng_mean   = ng_price_dict[state_abbr]    # $/MJ
 
-    # --- Normal distributions around state means ---
+    # Normal distributions around state means ---
     elec_sigma = 0.1 * elec_mean / 1.96
     ng_sigma   = 0.1 * ng_mean / 1.96
 
+    # Distribution functions: 
     elec_price_dist = lambda n: np.random.normal(elec_mean, elec_sigma, n)
     ng_price_dist   = lambda n: np.random.normal(ng_mean, ng_sigma, n)
 
-    # Draw random samples
+    ## Random sampling 
     leak_rates = leak_rate_dist(n_iter)
     leak_fracs = leak_fraction_capturable_dist(n_iter)
     elec_prices = elec_price_dist(n_iter)
@@ -318,7 +324,7 @@ national_summary.to_csv("02_clean_data/chp_national_mc_summary.csv", index=False
 
 def print_national_summary_table(national_summary_df):
     """
-    Print a nicely formatted table of national MC results.
+    Print national MC results.
 
     Parameters
     ----------
