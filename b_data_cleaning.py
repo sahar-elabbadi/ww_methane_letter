@@ -70,7 +70,7 @@ def clean_moore2023_data():
     
     return reorder_merged
 
-# Call the function
+# Clean Moore et al 2023 data 
 moore2023_data = clean_moore2023_data()
 
 
@@ -131,7 +131,8 @@ def clean_moore2025_data():
     return reorder_moore2025
 
 
-# Call the function
+# Clean Moore et al 2025 data 
+
 moore2025_data = clean_moore2025_data()
 
 
@@ -182,6 +183,7 @@ def clean_song_data():
 
     return df[save_cols]
 
+# Clean Song et al 2023 data
 song_data = clean_song_data()
 
 # %%
@@ -207,6 +209,7 @@ def load_fredenslund_data(excel_path: Path, last_row_excel: int = 72, sheet: str
     headers = raw.iloc[header_row_idx].astype(str).str.strip().tolist()
     units_raw = raw.iloc[units_row_idx].astype(str).tolist()
 
+    # For dealing with headers that have units with non-standard characters
     def normalize_unit(u: str) -> str:
         if not isinstance(u, str):
             return ""
@@ -329,6 +332,8 @@ print(fredenslund_with_pe[['total_methane_emission_kgch4_per_hour', 'wastewater_
 
 excel_path = pathlib.Path("01_raw_data", "Fredenslund2023_SI-data.xlsx")
 raw_df = load_fredenslund_data(excel_path)
+
+# Generate final clean dataset 
 fredenslund_data = clean_fredenslund_data(fredenslund_with_pe)
 # %%
 ####################### Data cleaning for Gälfalk et al., 2025 ######################
@@ -417,21 +422,3 @@ chp_data.to_csv(chp_save_path, index=False)
 ad_save_path = pathlib.Path("02_clean_data", "ad_data.csv")
 ad_data.to_csv(ad_save_path, index=False)
 
-#%% MOVED TO UTILITIES 
-# import pathlib
-# import pandas as pd 
-# from a_my_utilities import load_eia_data
-
-# # Load and process the DataFrame
-# eia_industrial_tariffs_2023_df = (
-#     load_eia_data(sector='INDUSTRIAL', year=2023)
-#     .set_index('State')  # Ensure "State" is the index
-#     [['Price (Cents/kWh)']]  # Double brackets keep it as a DataFrame
-#     .div(100)  # Convert from cents to dollars
-# )
-
-# # Save as a CSV file
-# eia_industrial_tariffs_2023_df.to_csv(pathlib.PurePath('02_clean_data', 'eia_industrial_tariffs_2023.csv'))
-
-# # # Convert DataFrame column to dictionary for use in other scripts
-# # eia_industrial_tariffs_2023 = eia_industrial_tariffs_2023_df['Price (Cents/kWh)'].to_dict() 

@@ -170,7 +170,7 @@ eia_industrial_natural_gas_2023 = eia_industrial_natural_gas_2023_df['Price ($/M
 
 def load_and_clean_facility_data(filepath: str) -> pd.DataFrame:
     """
-    Load and clean facility-level emissions data from an Excel file.
+    Load and clean facility-level emissions data from El Abbadi, Feng 2025.
 
     Parameters:
     - filepath: str
@@ -908,11 +908,12 @@ def calc_annual_revenue(plant_size, leak_rate, leak_fraction_capturable, *,
     ogi_cost: cost of OGI survey in USD
     """
     
+    # leak value is in units of USD per hour
     leak_value = calc_leak_value_CHP(plant_size, leak_rate, leak_fraction_capturable, 
                                      engine=engine, electricity_price_per_kWh=electricity_price_per_kWh, nat_gas_price_per_MJ=nat_gas_price_per_MJ)
     
     
-
+    # Calculate annual revenue 
     annual_revenue = leak_value * 24 * 365  # Annual revenue in USD
     
     return annual_revenue

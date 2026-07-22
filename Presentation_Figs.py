@@ -43,7 +43,7 @@ fig, ax = plt.subplots(figsize=(8, 8))
 # Panel (0,0): capturable = 0.5
 params = {"leak_fraction_capturable": 0.5, "electricity_price_per_kWh": elec_price}
 plot_methane_savings_vary_leak_rate(
-    leak_fraction_capturable=0.5,
+    leak_fraction_capturable=0.8,
     electricity_price_per_kWh=elec_price,
     nat_gas_price_per_MJ=gas_price, 
     engine=engine,
@@ -59,6 +59,13 @@ plot_methane_savings_vary_leak_rate(
     title=False  
 )
 
+
 # Increase font size for all axes 
 fontsize_axis_labels = 20
-ax.set_xlabel("Plant Size (m³/day)", fontsize=20)
+fontsize_tick_labels = 18
+
+ax.set_xlabel("Plant Size (m³/day)", fontsize=fontsize_axis_labels)
+ax.set_ylabel("Leak Rate (%)", fontsize=fontsize_axis_labels)
+ax.tick_params(labelsize=fontsize_tick_labels)
+
+# %%

@@ -24,8 +24,9 @@ elec_price = 0.09  # $/kWh fixed for all panels - value based on calculations in
 gas_price = 0.008 # $/MJ fixed for all panels - value based on calculations in Paper_Calculations.py, median natural gas price for facilities with CHP
 engine = ENGINES['reciprocating_lean_burn'] # SET ENGINE TYPE HERE 
 
-vmin = 0
-vmax = 5_500_000
+# Range for heat map contour lines 
+vmin = 0 # min dollar value
+vmax = 5_500_000 # max dollar value 
 levels_fill = np.linspace(vmin, vmax, 100)  
 # levels_line = np.linspace(vmin, vmax, 10)    # default evenly spaced lines
 levels_line = [100_000, 250_000, 500_000, 750_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000, 4_000_000, 5_000_000]
