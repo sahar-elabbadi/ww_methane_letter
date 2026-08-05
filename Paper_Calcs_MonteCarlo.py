@@ -29,7 +29,7 @@ measurement_data_ad_all = pd.read_csv(
 
 measurement_data_ad_reported_biogas = pd.read_csv(
     pathlib.Path("02_clean_data", "measurement_data_ad.csv")
-).query("reported_biogas_production == 'yes'")
+    ).query("reported_biogas_production == 'yes'")
 
 # Distrubtions for leak rates 
 
@@ -41,7 +41,7 @@ def make_bootstrap_sampler_from_df(df: pd.DataFrame, col: str = "leak_rate"):
     - Raises a clear error if no valid data remain.
     """
     series = pd.to_numeric(df[col], errors="coerce")
-    data = series[(series > 0) & (series < 1)].dropna().to_numpy()
+    data = series[(series > 0) & (series < 1)].dropna().to_numpy() # Do not include leak rates over 100% 
 
     if data.size == 0:
         raise ValueError(f"No valid leak-rate data found in column '{col}' (0<value<1).")
