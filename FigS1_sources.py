@@ -541,8 +541,8 @@ def label_fred_galfalk(df):
 # =========================
 # Plot functions (per axis)
 # =========================
-def plot_left(ax, df_left, color_by="ad_label", color_palette=COLOR_AD,
-              shape_by="source_label", markers_map=None, title=None):
+def plot_leak_vs_flow(ax, df_left, color_by="ad_label", color_palette=COLOR_AD,
+              shape_by="source_label", shape_legend="Source",markers_map=None, title=None):
     if df_left.empty:
         ax.set_axis_off()
         ax.text(0.5, 0.5, "No flow data for this subset", ha="center", va="center", fontsize=11)
@@ -598,21 +598,29 @@ def plot_left(ax, df_left, color_by="ad_label", color_palette=COLOR_AD,
         ax.set_title(title, fontsize=13)
 
     # Legends
-    marker_dict = markers_map or {}
+    
+    if shape_by == "measurement_type":
+        marker_dict = {
+            "Vehicle": "o",
+            "Literature": "s",
+        }
+    else:
+        marker_dict = markers_map or {}
+
     add_dual_legends(
         ax,
         color_palette=color_palette,
         color_values=list(color_palette.keys()),
         color_title="Anaerobic Digestion",
         marker_dict=marker_dict,
-        marker_title="Source",
+        marker_title=shape_legend,
         color_loc="upper left",
         shape_loc="lower left",
         fontsize=9
     )
 
-def plot_right(ax, df_right, color_by="data_availability", color_palette=COLOR_AVAIL,
-               shape_by="source_label", markers_map=None, title=None):
+def plot_prod_normalized_leaks_vs_biogas(ax, df_right, color_by="data_availability", color_palette=COLOR_AVAIL,
+               shape_by="source_label", shape_legend="Source", markers_map=None, title=None):
     if df_right.empty:
         ax.set_axis_off()
         ax.text(0.5, 0.5, "No data for this subset", ha="center", va="center", fontsize=11)
@@ -639,7 +647,7 @@ def plot_right(ax, df_right, color_by="data_availability", color_palette=COLOR_A
     ax.set_xscale("log"); ax.set_yscale("log")
     ax.yaxis.set_major_formatter(_percent_formatter)
     ax.set_xlabel("Biogas (kg CH₄/hr)", fontsize=12)
-    ax.set_ylabel("Prod-normalized CH₄ (%)", fontsize=12)
+    ax.set_ylabel("Production normalized CH₄ (%)", fontsize=12)
     for side in ["top", "right"]:
         ax.spines[side].set_visible(False)
     ax.tick_params(labelsize=10)
@@ -674,7 +682,7 @@ def plot_right(ax, df_right, color_by="data_availability", color_palette=COLOR_A
         color_values=list(color_palette.keys()),
         color_title="Data Availability",
         marker_dict=marker_dict,
-        marker_title="Source",
+        marker_title=shape_legend,
         color_loc="upper left",
         shape_loc="lower left",
         fontsize=9
@@ -697,7 +705,7 @@ def main():
     markers_left1 = markers_for_sources(left1["source"].unique())
     markers_right1 = markers_for_sources(right1["source"].unique())
 
-    plot_left(axes[0,0], left1, color_palette=COLOR_AD, shape_by="source_label",
+    plot_leak_vs_flow(axes[0,0], left1, color_palette=COLOR_AD, shape_by="source_label",
               markers_map={s: markers_left1.get(s, "o") for s in left1["source"].unique()},
               title="All Data: Emissions vs Flow")
     # attach source_label for shapes
@@ -705,11 +713,11 @@ def main():
 
     # we need to replot after labeling shapes (fix: label first)
     axes[0,0].cla()
-    plot_left(axes[0,0], add_ad_label(left1), color_palette=COLOR_AD, shape_by="source_label",
+    plot_leak_vs_flow(axes[0,0], add_ad_label(left1), color_palette=COLOR_AD, shape_by="source_label",
               markers_map=markers_left1, title="All Data: Emissions vs Flow")
 
     right1 = label_source_simple(right1)
-    plot_right(axes[0,1], right1, color_palette=COLOR_AVAIL, shape_by="source_label",
+    plot_prod_normalized_leaks_vs_biogas(axes[0,1], right1, color_palette=COLOR_AVAIL, shape_by="source_label",
                markers_map=markers_right1, title="All Data: Prod-Normalized vs Biogas")
 
     # ---------- Row 2: Moore et al. ----------
@@ -722,9 +730,9 @@ def main():
     markers_left2 = markers_for_sources(left2["source_label"].unique())
     markers_right2 = markers_for_sources(right2["source_label"].unique())
 
-    plot_left(axes[1,0], left2, color_palette=COLOR_AD, shape_by="source_label",
+    plot_leak_vs_flow(axes[1,0], left2, color_palette=COLOR_AD, shape_by="source_label",
               markers_map=markers_left2, title="Moore et al. 2023 and 2025: Emissions vs Flow")
-    plot_right(axes[1,1], right2, color_palette=COLOR_AVAIL, shape_by="source_label",
+    plot_prod_normalized_leaks_vs_biogas(axes[1,1], right2, color_palette=COLOR_AVAIL, shape_by="source_label",
                markers_map=markers_right2, title="Moore et al. 2023 and 2025: Prod-Normalized vs Biogas")
 
     # ---------- Row 3: Song et al. ----------
@@ -737,9 +745,9 @@ def main():
     markers_left3 = markers_for_sources(left3["source_label"].unique())
     markers_right3 = markers_for_sources(right3["source_label"].unique())
 
-    plot_left(axes[2,0], left3, color_palette=COLOR_AD, shape_by="source_label",
+    plot_leak_vs_flow(axes[2,0], left3, color_palette=COLOR_AD, shape_by="source_label",
               markers_map=markers_left3, title="Song et al.: Emissions vs Flow")
-    plot_right(axes[2,1], right3, color_palette=COLOR_AVAIL, shape_by="source_label",
+    plot_prod_normalized_leaks_vs_biogas(axes[2,1], right3, color_palette=COLOR_AVAIL, shape_by="source_label",
                markers_map=markers_right3, title="Song et al.: Prod-Normalized vs Biogas")
 
     # ---------- Row 4: Fredenslund & Gålfalk ----------
@@ -753,9 +761,9 @@ def main():
     markers_right4 = markers_for_sources(right4["source_label"].unique())
 
     # Left plot likely empty (no flow data) — function handles gracefully
-    plot_left(axes[3,0], left4, color_palette=COLOR_AD, shape_by="source_label",
+    plot_leak_vs_flow(axes[3,0], left4, color_palette=COLOR_AD, shape_by="source_label",
               markers_map=markers_left4, title="Fredenslund et al. and Gålfalk et al.: No reported flow data")
-    plot_right(axes[3,1], right4, color_palette=COLOR_AVAIL, shape_by="source_label",
+    plot_prod_normalized_leaks_vs_biogas(axes[3,1], right4, color_palette=COLOR_AVAIL, shape_by="source_label",
                markers_map=markers_right4, title="Fredenslund et al. and Gålfalk et al.: Prod-Normalized vs Biogas")
     
 
@@ -800,7 +808,7 @@ def main():
 
     plt.tight_layout()
     # Save + show
-    outpath = pathlib.Path("03_figures") / "supplementary_measurement_data_stacked.png"
+    outpath = pathlib.Path("03_figures", "FigS1_breakdown_by_source") 
     plt.savefig(outpath, dpi=300, bbox_inches="tight")
 
     # Show in GUI
@@ -810,3 +818,71 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+#%% 
+# Make a Supplementary Figure S2: production normalized emissions vs biogas production rate, with color indicating AD vs no AD and shape indicating measurement type
+
+# Measurement type dictionary: 
+
+MEASUREMENT_TYPES = {
+    # Source: Measurement Type 
+    "Moore et al., 2023": "Vehicle", 
+    "Moore et al., 2025": "Vehicle",
+    "Song et al., 2023": "Literature",
+    "Fredenslund et al., 2023": "Tracer Gas", 
+    "Galfalk et al., 2025": "Drone",
+}
+
+markers_legend_all = {
+    "Vehicle": "o",
+    "Literature": "s",
+    "Tracer Gas": "^",
+    "Drone": "D",
+}
+
+markers_legend_left = {
+    "Vehicle": "o",
+    "Literature": "s",
+}
+
+# Add measurement type column to measurement_data and measurement_data_ad
+for df in [measurement_data, measurement_data_ad]:
+    df["measurement_type"] = df["source"].map(MEASUREMENT_TYPES)
+
+
+# Initial plot and axes 
+fig, axes = plt.subplots(1, 2, figsize=(17, 6), constrained_layout=True)
+
+# Plot 
+plot_leak_vs_flow(axes[0],
+                  df_left=measurement_data, 
+                  color_by="ad_label", 
+                  color_palette=COLOR_AD, 
+                  shape_by="measurement_type", 
+                  shape_legend="Measurement Type",
+                  markers_map=markers_legend_all, #"tracer_gas": "^", "drone": "D"}, 
+                  title="Production Normalized Emissions vs Biogas Production Rate")
+
+plot_prod_normalized_leaks_vs_biogas(axes[1], 
+                                     df_right=measurement_data_ad, 
+                                     color_by="data_availability", 
+                                     color_palette=COLOR_AVAIL, 
+                                     shape_by="measurement_type", 
+                                     shape_legend="Measurement Type", 
+                                     markers_map=markers_legend_all, 
+                                     title="Production Normalized Emissions vs Biogas Production Rate")
+
+# Save figure 
+outpath = pathlib.Path("03_figures", "FigS2_measurement_type_breakdown.png")
+plt.savefig(outpath, dpi=300, bbox_inches="tight")
+# %%
+print(measurement_data["measurement_type"].value_counts(dropna=False))
+# %%
+df = measurement_data[(measurement_data["flow_m3_per_day"] > 0) &
+        (measurement_data["ch4_kg_per_hr"] > 0)].copy()
+
+print(df["measurement_type"].value_counts(dropna=False))
+print(df["measurement_type"].dtype)
+# %%

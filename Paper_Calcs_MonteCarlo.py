@@ -4,7 +4,7 @@ import pandas as pd
 import pathlib
 from a_my_utilities import calc_annual_revenue, Engine, ENGINES, set_chini_dataset
 import matplotlib.pyplot as plt
-
+from scipy.stats import spearmanr
 
 ###### Set up data ######
 
@@ -159,7 +159,15 @@ def monte_carlo_annual_revenue(
         for i in range(n_iter)
     ])
 
-    return revenues, {"elec_mu_usd_per_kwh": elec_mean, "ng_mu_usd_per_mj": ng_mean}
+    return revenues, {
+        "revenue": revenues, 
+        "leak_rate": leak_rates,
+        "leak_fraction_capturable": leak_fracs,
+        "electricity_price": elec_prices,
+        "natural_gas_price": gas_prices,
+        "elec_mu_usd_per_kwh": elec_mean, # Not sure if I need this
+        "ng_mu_usd_per_mj": ng_mean, # Not sure if I need this 
+        }
 
 # Function for running Monte Carlo simulation on all plants in a DataFrame
 def run_mc_for_all_plants(
@@ -205,7 +213,7 @@ def run_mc_for_all_plants(
         for name, sampler in leak_rate_samplers.items():
 
             # seed for random number generator 
-            # This is what ChatGPT suggested: 
+            # This is what ChatGPT suggested, not using for now: 
             # seed = None if base_seed is None else (base_seed + 1000*i + hash(name) % 9973)
 
             # Modifying based on online reading 
@@ -370,3 +378,64 @@ def print_national_summary_table(national_summary_df):
 
 # Print formatted summary
 print_national_summary_table(national_summary.reset_index(drop=True))
+
+
+##### Sensitivity analysis
+
+def spearman_sensitivity(mc_results): 
+
+    """
+    Use results from Monte Carlo analysis to calculate Spearman's rank correlation coefficients
+    """
+
+    mc_results = mc_results[1] # Obtain dictionary of results from monte_carlo_annual_revenue
+
+    revenue = mc_results["revenue"]
+
+    spearman_rho = {}
+    spearman_p = {}
+
+    for i in ["leak_rate", "leak_fraction_capturable", "electricity_price", "natural_gas_price"]:
+        res = spearmanr(mc_results[i], revenue)
+        spearman_rho[i] = res.statistic
+        spearman_p[i] = res.pvalue
+
+    spearman_df = pd.DataFrame({
+        "spearman_rho": spearman_rho,
+        "spearman_p": spearman_p
+    })
+
+    return spearman_df
+
+
+
+# # Apply Spearman's rank correlation for variable inputs. 
+# # Variables: 
+# # # Leak rate distribution (3 different scenarios)
+# # # Leak fraction capturable (uniform distribution 0.5–0.9)
+# # # Electrical efficiency: energy efficiency of engine, fixed 
+# # # Natural gas price: normal distribution around state mean
+# # # Electricity price: normal distribution around state mean
+
+# # Approach based on code in El Abbadi, Feng et al., 2025 (https://github.com/jiananf2/US_WWTP_GHG)
+
+# # Generate 10,000 random samples for each variable input: 
+
+# # Start with the conservative leak rate for now:
+
+# n_iter = 10_000
+
+# # Use average electricity and natural gas prices for states containing facilities with CHP 
+# elec_mean = 0.09  # $/kWh value from Fig 4 - value based on calculations in Paper_Calculations.py, median electricity price for facilities with CHP
+# ng_mean = 0.008 # $/MJ value from Fig 4 - value based on calculations in Paper_Calculations.py, median natural gas price for facilities with CHP
+
+# # Normal distributions around state means ---
+# elec_sigma = 0.1 * elec_mean / 1.96
+# ng_sigma   = 0.1 * ng_mean / 1.96
+
+
+# leak_rate_dist = make_heavy_tail_leak_dist
+# leak_rates = leak_rate_dist(n_iter)
+# leak_fracs = leak_fraction_capturable_dist(n_iter)
+# elec_price_dist = lambda n: np.random.normal(elec_mean, elec_sigma, n)
+# ng_price_dist   = lambda n: np.random.normal(ng_mean, ng_sigma, n)
