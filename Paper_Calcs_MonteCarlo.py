@@ -89,7 +89,7 @@ def monte_carlo_annual_revenue(
     leak_fraction_capturable_dist,
     engine: Engine,
     n_iter=10000,
-    ogi_cost=100000,
+    # ogi_cost=100000,
     random_seed=None
 ):
     """
@@ -128,8 +128,12 @@ def monte_carlo_annual_revenue(
     ## Make distributions for electricity and natural gases for the input state 
     
     # State means
-    elec_mean = elec_price_dict[state_abbr]  # $/kWh
-    ng_mean   = ng_price_dict[state_abbr]    # $/MJ
+    if state_abbr not in elec_price_dict or state_abbr not in ng_price_dict:
+        elec_mean = 0.09  # $/kWh to match Fig 4 - value based on calculations in Paper_Calculations.py, median electricity price for facilities with CHP
+        ng_mean = 0.008 # $/MJ to match Fig 4 - value based on calculations in Paper_Calculations.py, median natural gas price for facilities with CHP
+    else:
+        elec_mean = elec_price_dict[state_abbr]  # $/kWh
+        ng_mean   = ng_price_dict[state_abbr]    # $/MJ
 
     # Normal distributions around state means ---
     elec_sigma = 0.1 * elec_mean / 1.96
@@ -154,7 +158,7 @@ def monte_carlo_annual_revenue(
             engine=engine,
             electricity_price_per_kWh=elec_prices[i],
             nat_gas_price_per_MJ=gas_prices[i],
-            ogi_cost=ogi_cost
+            # ogi_cost=ogi_cost
         )
         for i in range(n_iter)
     ])
@@ -168,6 +172,8 @@ def monte_carlo_annual_revenue(
         "elec_mu_usd_per_kwh": elec_mean, # Not sure if I need this
         "ng_mu_usd_per_mj": ng_mean, # Not sure if I need this 
         }
+
+    
 
 # Function for running Monte Carlo simulation on all plants in a DataFrame
 def run_mc_for_all_plants(
@@ -388,7 +394,7 @@ def spearman_sensitivity(mc_results):
     Use results from Monte Carlo analysis to calculate Spearman's rank correlation coefficients
     """
 
-    mc_results = mc_results[1] # Obtain dictionary of results from monte_carlo_annual_revenue
+    mc_results = mc_results[1] # Obtain dictionary of results from monte_carlo_annual_revenue (MC on a single plant)
 
     revenue = mc_results["revenue"]
 
@@ -406,6 +412,17 @@ def spearman_sensitivity(mc_results):
     })
 
     return spearman_df
+
+mc_results = monte_carlo_annual_revenue(
+    plant_size=750_000,  # Start with 750 Mm3 plant size
+    state_abbr="generic",  # Generic state for the average price
+    leak_rate_dist=leak_rate_heavy_tail_dist,
+    leak_fraction_capturable_dist=leak_fraction_capturable_dist,
+    engine=engine,
+    n_iter=10000,
+)
+
+
 
 
 
