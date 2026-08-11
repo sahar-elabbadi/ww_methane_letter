@@ -105,7 +105,7 @@ def plot_methane_savings_vary_leak_rate(
     # Axes formatting
     ax.tick_params(direction='in', length=8, width=1.5, pad=6, labelsize=14)
     ax.set_xlabel("Plant Size (m³/day)", fontsize=16)
-    ax.set_ylabel("Leak Rate (%)", fontsize=16)
+    ax.set_ylabel("Emission Rate (%)", fontsize=16)
     ax.set_xlim(plant_sizes_m3_per_day_range)
 
     xticks = np.arange(0, plant_sizes_m3_per_day_range[1] + 1, 200_000)

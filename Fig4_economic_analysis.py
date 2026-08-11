@@ -132,7 +132,7 @@ plot_methane_savings_vary_capturable(
     norm=shared_norm
 )
 # axes[1, 0].set_title("Leak rate: 5% — vary capturable fraction")
-axes[1,0].text(0.02, 0.04, "Leak rate: 5%", transform=axes[1, 0].transAxes, fontsize=18)
+axes[1,0].text(0.02, 0.04, "Emission rate: 5%", transform=axes[1, 0].transAxes, fontsize=18)
 
 
 
@@ -152,7 +152,7 @@ plot_methane_savings_vary_capturable(
     norm=shared_norm
 )
 # axes[1, 1].set_title("Leak rate: 10% — vary capturable fraction")
-axes[1, 1].text(0.02, 0.04, "Leak rate: 15%", transform=axes[1, 1].transAxes, fontsize=18)
+axes[1, 1].text(0.02, 0.04, "Emission rate: 15%", transform=axes[1, 1].transAxes, fontsize=18)
 
 
 # Increase tick label size in all subplots

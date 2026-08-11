@@ -56,3 +56,16 @@ zArchive: old scripts not used in final analysis.
 14. Paper_Calculations: runs all calculations in the main manuscript 
 15. Presentation_Figs.py: generates versions of the script used in presentations 
 16. requirements.txt: requirements file 
+
+
+### Instructions for use
+
+Generating figures from their respective .py files or to reproducting Monte Carlo analysis (Paper_Calcs_MonteCarlo.py) or calculations in the text of the manuscript (Paper_Calculations.py) can be done by directly running the relevant .py file. All .py files will import cleaned versions of the necessary data to run the script from 02_clean_data. 
+
+To reproduce data cleaning, run "b_data_cleaning.py" and "d_clean_chini_data.py." 
+
+The following files include functions used by analysis / figure scripts: a_my_utilities.py, c_plotting_functions.py, chini_stats.py (runs and saves linear regression for Chini et al raw data). 
+
+The following files did not directly inform analysis in the manuscript, and may be archived in future versions: 
+- calc_digester_costs.py
+- e_compare_biogas_methods.py
