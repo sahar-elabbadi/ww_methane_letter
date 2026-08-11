@@ -1,11 +1,11 @@
 #%% 
 #Setup
-import pandas as pd 
+import pandas as pd load_ch4_emissions_data
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pathlib
-from a_my_utilities import get_chini_sample_size, get_chini_se_slope, get_chini_sigma, set_chini_dataset, load_ch4_emissions_data, calc_biogas_production_rate, load_ch4_emissions_with_ad_only, calculate_production_normalized_ch4, calc_annual_revenue
+from a_my_utilities import get_chini_sample_size, get_chini_se_slope, get_chini_sigma, set_chini_dataset, , calc_biogas_production_rate, load_ch4_emissions_with_ad_only, calculate_production_normalized_ch4, calc_annual_revenue
 from a_my_utilities import solve_leak_rate_for_value, get_chini_slope, METHANE_MJ_PER_KG, get_chini_r2_centered, get_chini_r2_origin, annualized_cost, ENGINES, METHANE_KG_PER_SCF
 import matplotlib.ticker as mtick
 import matplotlib.ticker as ticker
@@ -57,6 +57,7 @@ measurement_data_has_biogas_data = measurement_data_ad_filt.query("reported_biog
 # Load El Abbadi, Feng et al 2025 data on facilities with CHP 
 chp_data = pd.read_csv(pathlib.Path("02_clean_data", "chp_data.csv"))
 wwtp_data = pd.read_csv(pathlib.Path("02_clean_data", "wwtp_data.csv"))
+ad_data = pd.read_csv(pathlib.Path("02_clean_data", "ad_data.csv"))
 
 
 #%% 
@@ -592,7 +593,47 @@ print(f"Survey cost high (OGI, tuneable diode laser, etc.): ${survey_cost_high *
 
 measurement_data["source"].value_counts(dropna=False)
 # %%
+from a_my_utilities import load_all_facilities
 
+
+
+
+
+
+
+
+# Changes during peer review
+
+# What is the average flow of facilities in the US? 
+
+# Load El Abbadi, Feng et al 2025 data on facilities with CHP 
+# chp_data = pd.read_csv(pathlib.Path("02_clean_data", "chp_data.csv"))
+# wwtp_data = pd.read_csv(pathlib.Path("02_clean_data", "wwtp_data.csv"))
+# measurement_data = load_ch4_emissions_data()
+
+def load_no_ad_facilities():
+        # Load cleaned data for all facilities 
+    wwtp_data = load_all_facilities()
+        # Filter based on has_chp, save as copy 
+    no_anaerobic_digestion = wwtp_data[wwtp_data['has_ad']=='no'].copy()
+
+    return no_anaerobic_digestion
+
+
+no_ad_data = load_no_ad_facilities()
+
+# Mean
+print(f"Average flow across all WRRFs in the United States: {wwtp_data['flow_m3_per_day'].mean():,.2f} m^3")
+print(f"Average flow across WRRFs with AD in the United States: {ad_data['flow_m3_per_day'].mean():,.2f} m^3")
+print(f"Average flow across WRRFs with CHP in the United States: {chp_data['flow_m3_per_day'].mean():,.2f} m^3")
+print(f"Average flow across WRRFs with no AD in the United States: {no_ad_data['flow_m3_per_day'].mean():,.2f} m^3")
+print(f"Average flow across facilities in measurement dataset: {measurement_data['flow_m3_per_day'].mean():,.2f} m^3")
+
+print("\n")
+# Median
+print(f"Median flow across all WRRFs in the United States: {wwtp_data['flow_m3_per_day'].median():,.2f} m^3")
+print(f"Median flow across WRRFs with CHP in the United States: {chp_data['flow_m3_per_day'].median():,.2f} m^3")
+print(f"Median flow across facilities in measurement dataset: {measurement_data['flow_m3_per_day'].median():,.2f} m^3")
 
 #### OLD: 
 

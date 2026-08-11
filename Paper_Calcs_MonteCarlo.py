@@ -184,7 +184,7 @@ def run_mc_for_all_plants(
     engine: Engine,
     n_iter: int = 10000,
     base_seed: int = 123,       # determinism across runs
-    ogi_cost: float = 100000,
+    # ogi_cost: float = 100000,
     save_csv_path: str | None = None
 ):
     """
@@ -233,7 +233,7 @@ def run_mc_for_all_plants(
                 leak_fraction_capturable_dist=leak_fraction_capturable_dist,
                 engine=engine,
                 n_iter=n_iter,
-                ogi_cost=ogi_cost,
+                # ogi_cost=ogi_cost,
                 random_seed=seed
             )
 
@@ -344,7 +344,7 @@ summary_df = run_mc_for_all_plants(
 national_summary = summarize_national_from_mc(
     summary_df, 
     leak_rate_samplers=leak_rate_samplers, 
-    n_iter=10000
+    n_iter=10_000
 )
 
 national_summary.to_csv(pathlib.Path("02_clean_data", "chp_national_mc_summary.csv"), index=False)
@@ -413,6 +413,8 @@ def spearman_sensitivity(mc_results):
 
     return spearman_df
 
+#%%
+
 mc_results = monte_carlo_annual_revenue(
     plant_size=750_000,  # Start with 750 Mm3 plant size
     state_abbr="generic",  # Generic state for the average price
@@ -422,37 +424,47 @@ mc_results = monte_carlo_annual_revenue(
     n_iter=10000,
 )
 
+spearman_df_heavy_tail = spearman_sensitivity(mc_results)
+print("Heavy-tail leak rate distribution:")
+print(spearman_df_heavy_tail)
 
+mc_results = monte_carlo_annual_revenue(
+    plant_size=750_000,  # Start with 750 Mm3 plant size
+    state_abbr="generic",  # Generic state for the average price
+    leak_rate_dist=leak_rate_biogas_dist,
+    leak_fraction_capturable_dist=leak_fraction_capturable_dist,
+    engine=engine,
+    n_iter=10_000,
+)
 
+spearman_df_biogas = spearman_sensitivity(mc_results)
+print("Biogas data leak rate distribution:")
+print(spearman_df_biogas)
 
+mc_results = monte_carlo_annual_revenue(
+    plant_size=750_000,  # Start with 750 Mm3 plant size
+    state_abbr="generic",  # Generic state for the average price
+    leak_rate_dist=leak_rate_all_dist,
+    leak_fraction_capturable_dist=leak_fraction_capturable_dist,
+    engine=engine,
+    n_iter=10000,
+)
 
-# # Apply Spearman's rank correlation for variable inputs. 
-# # Variables: 
-# # # Leak rate distribution (3 different scenarios)
-# # # Leak fraction capturable (uniform distribution 0.5–0.9)
-# # # Electrical efficiency: energy efficiency of engine, fixed 
-# # # Natural gas price: normal distribution around state mean
-# # # Electricity price: normal distribution around state mean
+spearman_df_all = spearman_sensitivity(mc_results)
+print("All data leak rate distribution:")
+print(spearman_df_all)
 
-# # Approach based on code in El Abbadi, Feng et al., 2025 (https://github.com/jiananf2/US_WWTP_GHG)
+# Combine results into a single DataFrame
+#%%
+sensitivity_all = pd.concat(
+    [
+        spearman_df_heavy_tail.assign(distribution="heavy_tail", distribution_code=1),
+        spearman_df_biogas.assign(distribution="biogas", distribution_code=2),
+        spearman_df_all.assign(distribution="all_data", distribution_code=3),
+    ],
+    axis=0)
+print("Combined sensitivity analysis results:")
 
-# # Generate 10,000 random samples for each variable input: 
+sensitivity_all["sensitive"] = sensitivity_all["spearman_p"] < 0.05
+print(sensitivity_all)
 
-# # Start with the conservative leak rate for now:
-
-# n_iter = 10_000
-
-# # Use average electricity and natural gas prices for states containing facilities with CHP 
-# elec_mean = 0.09  # $/kWh value from Fig 4 - value based on calculations in Paper_Calculations.py, median electricity price for facilities with CHP
-# ng_mean = 0.008 # $/MJ value from Fig 4 - value based on calculations in Paper_Calculations.py, median natural gas price for facilities with CHP
-
-# # Normal distributions around state means ---
-# elec_sigma = 0.1 * elec_mean / 1.96
-# ng_sigma   = 0.1 * ng_mean / 1.96
-
-
-# leak_rate_dist = make_heavy_tail_leak_dist
-# leak_rates = leak_rate_dist(n_iter)
-# leak_fracs = leak_fraction_capturable_dist(n_iter)
-# elec_price_dist = lambda n: np.random.normal(elec_mean, elec_sigma, n)
-# ng_price_dist   = lambda n: np.random.normal(ng_mean, ng_sigma, n)

@@ -124,16 +124,18 @@ def make_eia_industrial_ng_2023():
     4) Save CSV to 02_clean_data/eia_industrial_tariffs_natural_gas_2023.csv
     5) Return dataframe
     """
-    # Manual insert for DC electricity value based on their provider 
-    dc_rate_per_therm = 0.40 # According to rates provided by Washington Gas, saved in 01_raw_data > DC_natural_gas_prices.pdf
 
-    # 1) Load the data
+    # Load EIA natural gas data 
     df = pd.read_excel(pathlib.Path('01_raw_data', 'EIA_natural_gas_prices.xlsx'), sheet_name='Clean - For Code', usecols=["Year", "State", "Price ($/Mscf)"])
 
-    # 2) Convert to $/MJ
+    # Convert to $/MJ
     df["Price ($/MJ)"] = pd.to_numeric(df["Price ($/Mscf)"], errors="coerce") / MSCF_TO_MJ
 
-    # 3) Insert manually selected rate for DC into the main dataframe
+    ## ------- Handling of Washington, DC natural gas data --------
+    # Washington, DC value not included. Add this manually based on info from the provider  provider
+    dc_rate_per_therm = 0.40 # According to rates provided by Washington Gas, saved in 01_raw_data > DC_natural_gas_prices.pdf
+
+    # Insert manually selected rate for DC into the main dataframe
     dc_mj = dc_rate_per_therm / THERM_TO_MJ # Unit conversion to $ / MJ 
     is_dc = df["State"].astype(str).str.upper().isin(["DC", "DISTRICT OF COLUMBIA"]) # Find row with DC, check for variations in naming
     if is_dc.any():
@@ -146,8 +148,9 @@ def make_eia_industrial_ng_2023():
             [df, pd.DataFrame({"Year": [2023], "State": [dc_name], "Price ($/Mscf)": [pd.NA], "Price ($/MJ)": [dc_mj]})],
             ignore_index=True,
         )
+    ## ------- End of Washington, DC data handling --------
 
-    # 4) Save the spreadsheet in clean data directory 
+    # Save the spreadsheet in clean data directory 
     out_path = pathlib.Path("02_clean_data", "eia_industrial_tariffs_natural_gas_2023.csv")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     eia_industrial_tariffs_2023_df = (
@@ -155,16 +158,13 @@ def make_eia_industrial_ng_2023():
     )
     eia_industrial_tariffs_2023_df.to_csv(out_path)
 
-    # 5) Dict for use elsewhere as needed
-    # eia_industrial_tariffs_2023 = eia_industrial_tariffs_2023_df["Price ($/MJ)"].to_dict()
-
     return eia_industrial_tariffs_2023_df
 
 # Load EIA natural gas data and process 
 eia_industrial_natural_gas_2023_df = make_eia_industrial_ng_2023()
 
 # Make dictionary for use elsewhere as needed 
-eia_industrial_natural_gas_2023 = eia_industrial_natural_gas_2023_df['Price ($/MJ)'].to_dict() # for use elsewhere in script
+eia_industrial_natural_gas_2023 = eia_industrial_natural_gas_2023_df['Price ($/MJ)'].to_dict() 
 
 ####### FACILITY DATA FROM EL ABBADI, FENG ET AL 2025 #########
 
